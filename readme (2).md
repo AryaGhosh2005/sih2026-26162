@@ -53,22 +53,6 @@ app.py (Streamlit) →  🗺️ Interactive Map + 📊 Analytics + 📋 Data Tab
 
 ---
 
-## 🎨 What's New (vs Old Version)
-
-| Feature | Old (Dark) | New (Light) |
-|---------|-----------|-------------|
-| Header | Dark glass card | **Red bar** (government style) |
-| Map theme | Dark matter | **Light/Street + Satellite toggle** |
-| Markers | Colored circles | **🔥🌲🏭 Emojis** |
-| Legend | Glassmorphism (invisible text) | **White card, dark text** |
-| Info panel | Popup only | **Fixed right panel on click** |
-| Theme | Cyberpunk dark | **Professional light** |
-| Architecture | FastAPI + Streamlit | **Streamlit only** |
-| Distance calc | cKDTree (approximate) | **geopandas (accurate)** |
-| Confidence | None | **AI-style confidence %** |
-
----
-
 ## 📁 File Structure
 
 ```
