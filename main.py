@@ -9,10 +9,10 @@ from api.risk import router as risk_router
 
 
 app = FastAPI(
-    title="SIH 26162 Industrial Fire Detection API",
+    title="Industrial Fire Detection API",
     description=(
-        "AI-powered satellite thermal intelligence backend "
-        "for industrial fire detection, classification, "
+        "Satellite thermal intelligence platform for "
+        "industrial fire detection, classification, "
         "and risk assessment."
     ),
     version="1.0.0",
