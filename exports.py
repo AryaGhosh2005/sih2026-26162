@@ -1,13 +1,21 @@
 import json
 import pandas as pd
+
 from fastapi import APIRouter, Response
 
-router = APIRouter()
+from services.data_service import load_fires
+
+
+router = APIRouter(
+    prefix="/api/v1/export",
+    tags=["Export"],
+)
 
 
 @router.get("/geojson")
 def export_geojson():
     df = load_fires()
+
     features = []
 
     for _, row in df.iterrows():
@@ -16,13 +24,12 @@ def export_geojson():
         for column in df.columns:
             value = row[column]
 
-            # Handle pandas/numpy NaN values
             if pd.isna(value):
                 value = None
-            # Convert datetime objects to ISO format
+
             elif hasattr(value, "isoformat"):
                 value = value.isoformat()
-            # Convert numpy types to native Python types
+
             elif hasattr(value, "item"):
                 value = value.item()
 
@@ -48,7 +55,11 @@ def export_geojson():
     }
 
     return Response(
-        content=json.dumps(geojson, indent=2, default=str),
+        content=json.dumps(
+            geojson,
+            indent=2,
+            default=str,
+        ),
         media_type="application/geo+json",
         headers={
             "Content-Disposition": (
