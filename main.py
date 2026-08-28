@@ -52,5 +52,5 @@ def root():
 def health_check():
     return {
         "status": "healthy",
-        "service": "industrial-fire-detection-backend",
+        "service": "thermal-intelligence-platform",
     }
