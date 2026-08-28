@@ -87,6 +87,12 @@ def create_fire_map(
         control_scale=True,
         tiles=None
     )
+folium.TileLayer(
+    tiles="CartoDB dark_matter",
+    name="Dark Theme",
+    overlay=False,
+    control=True
+).add_to(m)
 
     # -----------------------------------------------------
     # Satellite - DEFAULT
@@ -160,22 +166,22 @@ def create_fire_map(
             """
 
             folium.CircleMarker(
-                location=[
-                    row["latitude"],
-                    row["longitude"]
-                ],
-                radius=4,
-                color="#FFFFFF",
-                weight=1,
-                fill=True,
-                fill_color="#444444",
-                fill_opacity=0.75,
-                popup=folium.Popup(
-                    popup_html,
-                    max_width=240
-                ),
-                tooltip=name
-            ).add_to(facility_group)
+     location=[
+        row["latitude"],
+        row["longitude"]
+    ],
+    radius=3,
+    color="#9CA3AF",
+    weight=1,
+    fill=True,
+    fill_color="#6B7280",
+    fill_opacity=0.6,
+    popup=folium.Popup(
+        popup_html,
+        max_width=240
+    ),
+    tooltip=name
+).add_to(facility_group)
 
         facility_group.add_to(m)
 
@@ -482,12 +488,13 @@ def create_fire_map(
         )
 
         plugins.HeatMap(
-            heat_points,
-            min_opacity=0.25,
-            radius=25,
-            blur=18,
-            max_zoom=8
-        ).add_to(heat_group)
+    heat_points,
+    min_opacity=0.35,
+    radius=18,
+    blur=15,
+    max_zoom=10
+
+).add_to(heat_group))
 
         heat_group.add_to(m)
 
