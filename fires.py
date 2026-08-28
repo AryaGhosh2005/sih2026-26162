@@ -18,7 +18,11 @@ def get_fires(
     satellite: Optional[str] = Query(default=None),
     min_brightness: Optional[float] = Query(default=None, ge=0),
     min_confidence: Optional[float] = Query(default=None, ge=0, le=100),
-    max_distance: Optional[float] = Query(default=None, ge=0),
+    max_distance: Optional[float] = Query(
+    default=10,
+    ge=0,
+    le=10,
+    ),
     risk_level: Optional[str] = Query(default=None),
 ):
     df = load_fires()
