@@ -41,7 +41,7 @@ app.include_router(exports_router)
 @app.get("/")
 def root():
     return {
-        "system": "SIH 26162 Industrial Fire Detection System",
+        "system": "Industrial Fire Detection System",
         "status": "online",
         "version": "1.0.0",
         "docs": "/docs",
