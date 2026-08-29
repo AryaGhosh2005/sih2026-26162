@@ -74,6 +74,7 @@ def create_fire_map(
 
         zoom = 5
 
+
     # -----------------------------------------------------
     # Base map
     # -----------------------------------------------------
@@ -88,6 +89,7 @@ def create_fire_map(
         tiles=None
     )
 
+
     # -----------------------------------------------------
     # Satellite - DEFAULT
     # -----------------------------------------------------
@@ -100,6 +102,7 @@ def create_fire_map(
         control=True
     ).add_to(m)
 
+
     # -----------------------------------------------------
     # OpenStreetMap
     # -----------------------------------------------------
@@ -110,6 +113,7 @@ def create_fire_map(
         overlay=False,
         control=True
     ).add_to(m)
+
 
     # -----------------------------------------------------
     # Facility layer
@@ -179,6 +183,7 @@ def create_fire_map(
 
         facility_group.add_to(m)
 
+
     # -----------------------------------------------------
     # Fire / anomaly layer
     # -----------------------------------------------------
@@ -189,6 +194,7 @@ def create_fire_map(
     )
 
     heat_points = []
+
 
     if (
         industrial_fires_df is not None
@@ -240,11 +246,13 @@ def create_fire_map(
                 "Unknown"
             )
 
+
             # -------------------------------------------------
             # Heatmap data
             # -------------------------------------------------
 
             try:
+
                 intensity = max(
                     0.2,
                     min(
@@ -252,8 +260,11 @@ def create_fire_map(
                         (float(brightness) - 280) / 100
                     )
                 )
+
             except:
+
                 intensity = 0.5
+
 
             heat_points.append([
                 latitude,
@@ -261,87 +272,660 @@ def create_fire_map(
                 intensity
             ])
 
+
             # -------------------------------------------------
-            # Popup
+            # PREMIUM GLASS POPUP
             # -------------------------------------------------
 
             popup_html = f"""
-            <div style="
-                font-family:'Segoe UI',sans-serif;
-                min-width:230px;
-                border-radius:8px;
-                overflow:hidden;
-            ">
 
-                <div style="
-                    background:{color};
-                    color:white;
-                    padding:9px 12px;
-                    font-weight:700;
-                    font-size:13px;
-                ">
-                    {label.upper()}
-                </div>
+            <style>
 
-                <div style="
-                    padding:11px 12px;
-                    background:#111827;
-                    color:#ffffff;
-                    font-size:11px;
-                    line-height:1.7;
-                ">
+                /* =========================================
+                   REMOVE DEFAULT LEAFLET WHITE POPUP
+                   ========================================= */
+
+                .leaflet-popup-content-wrapper {{
+                    background: transparent !important;
+                    box-shadow: none !important;
+                    padding: 0 !important;
+                    border-radius: 16px !important;
+                }}
+
+                .leaflet-popup-content {{
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: auto !important;
+                }}
+
+                .leaflet-popup-tip {{
+                    background: rgba(8, 13, 24, 0.97) !important;
+                    box-shadow: none !important;
+                }}
+
+
+                /* =========================================
+                   CLOSE BUTTON
+                   ========================================= */
+
+                .leaflet-popup-close-button {{
+                    color: #ffffff !important;
+
+                    background:
+                        rgba(10, 15, 27, 0.92) !important;
+
+                    border:
+                        1px solid rgba(255,255,255,0.14) !important;
+
+                    border-radius: 50% !important;
+
+                    width: 23px !important;
+                    height: 23px !important;
+
+                    line-height: 21px !important;
+
+                    font-size: 16px !important;
+                    font-weight: 700 !important;
+
+                    right: 8px !important;
+                    top: 8px !important;
+
+                    z-index: 50 !important;
+
+                    box-shadow:
+                        0 3px 12px rgba(0,0,0,0.5) !important;
+                }}
+
+                .leaflet-popup-close-button:hover {{
+                    background:
+                        rgba(255,255,255,0.12) !important;
+
+                    color: #ffffff !important;
+                }}
+
+
+                /* =========================================
+                   MAIN POPUP
+                   ========================================= */
+
+                .thermal-glass-popup {{
+
+                    position: relative;
+
+                    width: 270px;
+
+                    overflow: hidden;
+
+                    background:
+                        linear-gradient(
+                            145deg,
+                            rgba(20,27,42,0.96),
+                            rgba(6,11,20,0.98)
+                        );
+
+                    border:
+                        1px solid rgba(255,255,255,0.13);
+
+                    border-left:
+                        3px solid {color};
+
+                    border-radius:
+                        16px;
+
+                    box-shadow:
+                        0 14px 38px rgba(0,0,0,0.60),
+                        0 0 18px {color}55,
+                        inset 0 1px 0 rgba(255,255,255,0.10);
+
+                    backdrop-filter:
+                        blur(14px);
+
+                    -webkit-backdrop-filter:
+                        blur(14px);
+
+                    font-family:
+                        'Segoe UI',
+                        Arial,
+                        sans-serif;
+
+                    color:
+                        #ffffff;
+                }}
+
+
+                /* =========================================
+                   TOP AMBIENT GLOW
+                   ========================================= */
+
+                .thermal-glass-popup::before {{
+
+                    content: "";
+
+                    position: absolute;
+
+                    top: -45px;
+                    left: -35px;
+
+                    width: 150px;
+                    height: 100px;
+
+                    background:
+                        {color};
+
+                    opacity:
+                        0.16;
+
+                    filter:
+                        blur(35px);
+
+                    pointer-events:
+                        none;
+                }}
+
+
+                /* =========================================
+                   HEADER
+                   ========================================= */
+
+                .thermal-popup-header {{
+
+                    position:
+                        relative;
+
+                    display:
+                        flex;
+
+                    align-items:
+                        center;
+
+                    gap:
+                        10px;
+
+                    padding:
+                        14px 42px 12px 15px;
+
+                    background:
+                        linear-gradient(
+                            135deg,
+                            {color}28,
+                            rgba(255,255,255,0.025)
+                        );
+
+                    border-bottom:
+                        1px solid rgba(255,255,255,0.09);
+                }}
+
+
+                /* =========================================
+                   HEADER ICON
+                   ========================================= */
+
+                .thermal-popup-icon {{
+
+                    width:
+                        34px;
+
+                    height:
+                        34px;
+
+                    flex:
+                        0 0 34px;
+
+                    display:
+                        flex;
+
+                    align-items:
+                        center;
+
+                    justify-content:
+                        center;
+
+                    border-radius:
+                        10px;
+
+                    background:
+                        {color}18;
+
+                    border:
+                        1px solid {color}60;
+
+                    box-shadow:
+                        0 0 12px {color}25;
+
+                    font-size:
+                        16px;
+                }}
+
+
+                /* =========================================
+                   TITLE
+                   ========================================= */
+
+                .thermal-popup-title {{
+
+                    font-size:
+                        13px;
+
+                    font-weight:
+                        800;
+
+                    letter-spacing:
+                        0.7px;
+
+                    color:
+                        #ffffff;
+                }}
+
+
+                .thermal-popup-subtitle {{
+
+                    margin-top:
+                        3px;
+
+                    font-size:
+                        8px;
+
+                    letter-spacing:
+                        1px;
+
+                    color:
+                        #7f8ba3;
+                }}
+
+
+                /* =========================================
+                   BODY
+                   ========================================= */
+
+                .thermal-popup-body {{
+
+                    position:
+                        relative;
+
+                    padding:
+                        11px 13px 13px;
+
+                    background:
+                        linear-gradient(
+                            145deg,
+                            rgba(13,20,34,0.90),
+                            rgba(5,10,18,0.97)
+                        );
+                }}
+
+
+                /* =========================================
+                   STATUS PILL
+                   ========================================= */
+
+                .thermal-status {{
+
+                    display:
+                        inline-flex;
+
+                    align-items:
+                        center;
+
+                    gap:
+                        5px;
+
+                    padding:
+                        4px 9px;
+
+                    margin-bottom:
+                        8px;
+
+                    border-radius:
+                        20px;
+
+                    background:
+                        {color}18;
+
+                    border:
+                        1px solid {color}55;
+
+                    color:
+                        {color};
+
+                    font-size:
+                        8px;
+
+                    font-weight:
+                        800;
+
+                    letter-spacing:
+                        0.7px;
+
+                    box-shadow:
+                        0 0 8px {color}15;
+                }}
+
+
+                /* =========================================
+                   FACILITY CARD
+                   ========================================= */
+
+                .thermal-facility-card {{
+
+                    padding:
+                        9px 10px;
+
+                    border-radius:
+                        9px;
+
+                    background:
+                        rgba(255,255,255,0.035);
+
+                    border:
+                        1px solid rgba(255,255,255,0.06);
+
+                    box-shadow:
+                        inset 0 1px 0 rgba(255,255,255,0.035);
+                }}
+
+
+                .thermal-label {{
+
+                    display:
+                        block;
+
+                    font-size:
+                        8px;
+
+                    text-transform:
+                        uppercase;
+
+                    letter-spacing:
+                        0.8px;
+
+                    color:
+                        #77839a;
+                }}
+
+
+                .thermal-facility-value {{
+
+                    margin-top:
+                        4px;
+
+                    font-size:
+                        11px;
+
+                    font-weight:
+                        700;
+
+                    color:
+                        #ffffff;
+                }}
+
+
+                /* =========================================
+                   DIVIDER
+                   ========================================= */
+
+                .thermal-divider {{
+
+                    height:
+                        1px;
+
+                    margin:
+                        10px 0;
+
+                    background:
+                        linear-gradient(
+                            90deg,
+                            transparent,
+                            rgba(255,255,255,0.12),
+                            transparent
+                        );
+                }}
+
+
+                /* =========================================
+                   METRIC ROW
+                   ========================================= */
+
+                .thermal-metric {{
+
+                    display:
+                        flex;
+
+                    justify-content:
+                        space-between;
+
+                    align-items:
+                        center;
+
+                    padding:
+                        6px 2px;
+
+                    border-bottom:
+                        1px solid rgba(255,255,255,0.055);
+                }}
+
+
+                .thermal-metric:last-child {{
+                    border-bottom:
+                        none;
+                }}
+
+
+                .thermal-metric-name {{
+
+                    font-size:
+                        9px;
+
+                    color:
+                        #7f8ba3;
+                }}
+
+
+                .thermal-metric-value {{
+
+                    font-size:
+                        10px;
+
+                    font-weight:
+                        700;
+
+                    color:
+                        #f4f7fb;
+                }}
+
+
+                .thermal-confidence {{
+
+                    color:
+                        #55e6a5;
+                }}
+
+
+                /* =========================================
+                   COORDINATES
+                   ========================================= */
+
+                .thermal-coordinates {{
+
+                    display:
+                        flex;
+
+                    flex-direction:
+                        column;
+
+                    gap:
+                        4px;
+
+                    padding:
+                        6px 2px 1px;
+                }}
+
+
+                .thermal-coordinate-value {{
+
+                    font-size:
+                        10px;
+
+                    font-weight:
+                        700;
+
+                    color:
+                        #ffffff;
+                }}
+
+
+                /* =========================================
+                   BOTTOM NEON ACCENT
+                   ========================================= */
+
+                .thermal-bottom-accent {{
+
+                    height:
+                        2px;
+
+                    background:
+                        linear-gradient(
+                            90deg,
+                            transparent,
+                            {color},
+                            transparent
+                        );
+
+                    opacity:
+                        0.80;
+                }}
+
+            </style>
+
+
+            <div class="thermal-glass-popup">
+
+
+                <!-- HEADER -->
+
+                <div class="thermal-popup-header">
+
+                    <div class="thermal-popup-icon">
+                        🔥
+                    </div>
 
                     <div>
-                        <span style="color:#9ca3af;">
+
+                        <div class="thermal-popup-title">
+                            {label.upper()}
+                        </div>
+
+                        <div class="thermal-popup-subtitle">
+                            SATELLITE THERMAL DETECTION
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- BODY -->
+
+                <div class="thermal-popup-body">
+
+
+                    <!-- STATUS -->
+
+                    <div class="thermal-status">
+
+                        ● ACTIVE DETECTION
+
+                    </div>
+
+
+                    <!-- FACILITY -->
+
+                    <div class="thermal-facility-card">
+
+                        <span class="thermal-label">
                             Facility
                         </span>
-                        <br>
-                        <b>{facility}</b>
+
+                        <div class="thermal-facility-value">
+                            {facility}
+                        </div>
+
                     </div>
 
-                    <hr style="
-                        border:none;
-                        border-top:1px solid #374151;
-                    ">
 
-                    <div>
-                        <span style="color:#9ca3af;">
+                    <!-- DIVIDER -->
+
+                    <div class="thermal-divider"></div>
+
+
+                    <!-- BRIGHTNESS -->
+
+                    <div class="thermal-metric">
+
+                        <span class="thermal-metric-name">
                             Brightness
                         </span>
-                        &nbsp;
-                        <b>{brightness} K</b>
+
+                        <span class="thermal-metric-value">
+                            {brightness} K
+                        </span>
+
                     </div>
 
-                    <div>
-                        <span style="color:#9ca3af;">
+
+                    <!-- CONFIDENCE -->
+
+                    <div class="thermal-metric">
+
+                        <span class="thermal-metric-name">
                             Confidence
                         </span>
-                        &nbsp;
-                        <b>{confidence}%</b>
+
+                        <span class="thermal-metric-value thermal-confidence">
+                            {confidence}%
+                        </span>
+
                     </div>
 
-                    <div>
-                        <span style="color:#9ca3af;">
+
+                    <!-- DISTANCE -->
+
+                    <div class="thermal-metric">
+
+                        <span class="thermal-metric-name">
                             Industry Distance
                         </span>
-                        &nbsp;
-                        <b>{distance} km</b>
+
+                        <span class="thermal-metric-value">
+                            {distance} km
+                        </span>
+
                     </div>
 
-                    <div>
-                        <span style="color:#9ca3af;">
+
+                    <!-- COORDINATES -->
+
+                    <div class="thermal-coordinates">
+
+                        <span class="thermal-label">
                             Coordinates
                         </span>
-                        <br>
-                        <b>
-                            {latitude:.4f},
-                            {longitude:.4f}
-                        </b>
+
+                        <span class="thermal-coordinate-value">
+                            {latitude:.4f}, {longitude:.4f}
+                        </span>
+
                     </div>
 
                 </div>
+
+
+                <!-- BOTTOM ACCENT -->
+
+                <div class="thermal-bottom-accent"></div>
+
             </div>
             """
+
 
             # -------------------------------------------------
             # Pulsing hotspot
@@ -373,13 +957,22 @@ def create_fire_map(
                     width:10px;
                     height:10px;
                     transform:translate(-50%, -50%);
-                    background:var(--marker-color);
-                    border:2px solid white;
-                    border-radius:50%;
+
+                    background:
+                        var(--marker-color);
+
+                    border:
+                        2px solid white;
+
+                    border-radius:
+                        50%;
+
                     box-shadow:
                         0 0 8px var(--marker-color),
                         0 0 16px var(--marker-color);
-                    z-index:3;
+
+                    z-index:
+                        3;
                 }}
 
                 .thermal-pulse {{
@@ -389,13 +982,22 @@ def create_fire_map(
                     width:10px;
                     height:10px;
                     transform:translate(-50%, -50%);
-                    border:2px solid var(--marker-color);
-                    border-radius:50%;
-                    animation:thermalPulse 1.8s infinite;
-                    opacity:0.9;
+
+                    border:
+                        2px solid var(--marker-color);
+
+                    border-radius:
+                        50%;
+
+                    animation:
+                        thermalPulse 1.8s infinite;
+
+                    opacity:
+                        0.9;
                 }}
 
                 @keyframes thermalPulse {{
+
                     0% {{
                         width:10px;
                         height:10px;
@@ -413,29 +1015,37 @@ def create_fire_map(
                         height:34px;
                         opacity:0;
                     }}
+
                 }}
 
             </style>
             """
+
 
             folium.Marker(
                 location=[
                     latitude,
                     longitude
                 ],
+
                 popup=folium.Popup(
                     popup_html,
-                    max_width=280
+                    max_width=300
                 ),
+
                 tooltip=label,
+
                 icon=folium.DivIcon(
                     html=icon_html,
                     icon_size=(30, 30),
                     icon_anchor=(15, 15)
                 )
+
             ).add_to(fire_group)
 
+
     fire_group.add_to(m)
+
 
     # -----------------------------------------------------
     # Heatmap
@@ -457,6 +1067,7 @@ def create_fire_map(
         ).add_to(heat_group)
 
         heat_group.add_to(m)
+
 
     # -----------------------------------------------------
     # Legend
@@ -501,7 +1112,9 @@ def create_fire_map(
             THERMAL CLASSIFICATION
         </div>
 
+
         <div style="margin:5px 0;">
+
             <span style="
                 display:inline-block;
                 width:9px;
@@ -510,10 +1123,14 @@ def create_fire_map(
                 background:#FF0000;
                 margin-right:7px;
             "></span>
+
             Industrial Fire
+
         </div>
 
+
         <div style="margin:5px 0;">
+
             <span style="
                 display:inline-block;
                 width:9px;
@@ -522,10 +1139,14 @@ def create_fire_map(
                 background:#FF8C00;
                 margin-right:7px;
             "></span>
+
             Wildfire
+
         </div>
 
+
         <div style="margin:5px 0;">
+
             <span style="
                 display:inline-block;
                 width:9px;
@@ -534,10 +1155,14 @@ def create_fire_map(
                 background:#00CC00;
                 margin-right:7px;
             "></span>
+
             Thermal Source
+
         </div>
 
+
         <div style="margin:5px 0;">
+
             <span style="
                 display:inline-block;
                 width:9px;
@@ -546,15 +1171,19 @@ def create_fire_map(
                 background:#0066CC;
                 margin-right:7px;
             "></span>
+
             Unknown
+
         </div>
 
     </div>
     """
 
+
     m.get_root().html.add_child(
         Element(legend_html)
     )
+
 
     # -----------------------------------------------------
     # Controls
@@ -565,8 +1194,10 @@ def create_fire_map(
         collapsed=True
     ).add_to(m)
 
+
     plugins.Fullscreen(
         position="topright"
     ).add_to(m)
+
 
     return m
