@@ -1,3 +1,4 @@
+#app.py#
 """
 SIH 26162 - AI-Based Industrial Fire Detection & Persistent Thermal Source Monitoring
 """
