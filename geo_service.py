@@ -1,4 +1,7 @@
+#geo_service.py#
 import math
+import numpy as np
+from scipy.spatial import KDTree
 
 
 def haversine_distance(
@@ -8,10 +11,12 @@ def haversine_distance(
     lon2: float,
 ) -> float:
     """Return great-circle distance between two points in kilometres."""
+
     radius = 6371.0
 
     phi1 = math.radians(lat1)
     phi2 = math.radians(lat2)
+
     delta_phi = math.radians(lat2 - lat1)
     delta_lambda = math.radians(lon2 - lon1)
 
@@ -22,33 +27,61 @@ def haversine_distance(
         * math.sin(delta_lambda / 2) ** 2
     )
 
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    c = 2 * math.atan2(
+        math.sqrt(a),
+        math.sqrt(1 - a)
+    )
+
     return radius * c
 
 
-def find_nearest_industry(latitude, longitude, industries):
+def build_industry_tree(industries):
+    """
+    Build KDTree once and reuse it.
+    """
+
     if industries.empty:
-        return None
+        return None, None
 
-    best = None
-    best_distance = float("inf")
-
-    for _, industry in industries.iterrows():
-        distance = haversine_distance(
-            latitude,
-            longitude,
-            float(industry["latitude"]),
-            float(industry["longitude"]),
+    coords = np.column_stack(
+        (
+            industries["latitude"],
+            industries["longitude"]
         )
+    )
 
-        if distance < best_distance:
-            best_distance = distance
-            best = industry
+    tree = KDTree(coords)
 
-    if best is None:
+    return tree, industries.reset_index(drop=True)
+
+
+def find_nearest_industry(
+    latitude,
+    longitude,
+    tree,
+    industries
+):
+    """
+    Fast nearest industry lookup using KDTree.
+    """
+
+    if tree is None:
         return None
+
+    _, index = tree.query(
+        [latitude, longitude]
+    )
+
+    industry = industries.iloc[index]
+
+    distance = haversine_distance(
+        latitude,
+        longitude,
+        float(industry["latitude"]),
+        float(industry["longitude"])
+    )
 
     return {
-        "industry": best,
-        "distance_km": round(best_distance, 3),
+        "industry": industry,
+        "distance_km": round(distance, 3),
     }

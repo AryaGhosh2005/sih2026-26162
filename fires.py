@@ -1,9 +1,11 @@
-from typing import Optional
+#fires.py#
 
+from typing import Optional
+import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
-from schemas.fire import FireDetection, FireDetectionSummary
-from services.data_service import get_fire_by_id, load_fires
+from fire import FireDetection, FireDetectionSummary
+from data_service import get_fire_by_id, load_fires
 
 
 router = APIRouter(
@@ -88,7 +90,7 @@ def get_fire(fire_id: str):
         "classification_label": fire["classification_label"],
         "acquisition_date": fire.get("acquisition_date"),
         "distance_to_industry": (
-            float(distance) if distance is not None and not __import__("pandas").isna(distance) else None
+            float(distance) if distance is not None and not pd.isna(distance) else None
         ),
         "nearest_industry": fire.get("nearest_industry"),
         "industry_type": fire.get("industry_type"),

@@ -1,3 +1,5 @@
+#risk_engine.py#
+
 from typing import Optional, Tuple
 
 
@@ -26,7 +28,7 @@ def calculate_proximity_score(distance_km: Optional[float]) -> float:
 
 
 def calculate_classification_bonus(classification: str) -> float:
-    return 5 if classification.upper() == "INDUSTRIAL_FIRE" else 0
+    return 20 if classification.upper() == "INDUSTRIAL_FIRE" else 0
 
 
 def calculate_risk(
@@ -59,11 +61,11 @@ def calculate_risk(
 
 
 def get_risk_level(score: int) -> str:
-    if score >= 80:
+    if score >= 65:
         return "CRITICAL"
-    if score >= 60:
+    if score >= 50:
         return "HIGH"
-    if score >= 40:
+    if score >= 35:
         return "MODERATE"
     return "LOW"
 

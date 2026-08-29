@@ -1,7 +1,9 @@
+#industries.py#
+
 from fastapi import APIRouter, HTTPException
 
-from schemas.industry import Industry
-from services.data_service import get_industry_by_id, load_industries
+from industry import Industry
+from data_service import get_industry_by_id, load_industries
 
 
 router = APIRouter(

@@ -1,9 +1,10 @@
+#exports.py#
 import json
 
 from fastapi import APIRouter
 from fastapi.responses import Response
 
-from services.data_service import load_fires
+from data_service import load_fires
 
 
 router = APIRouter(

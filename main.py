@@ -1,11 +1,14 @@
+#main.py#
+
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.analytics import router as analytics_router
-from api.exports import router as exports_router
-from api.fires import router as fires_router
-from api.industries import router as industries_router
-from api.risk import router as risk_router
+from analytics import router as analytics_router
+from exports import router as exports_router
+from fires import router as fires_router
+from industries import router as industries_router
+#from risk import router as risk_router
 
 
 app = FastAPI(
@@ -32,7 +35,7 @@ app.add_middleware(
 
 
 app.include_router(fires_router)
-app.include_router(risk_router)
+#app.include_router(risk_router)
 app.include_router(industries_router)
 app.include_router(analytics_router)
 app.include_router(exports_router)
