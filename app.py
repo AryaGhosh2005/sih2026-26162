@@ -12,6 +12,7 @@ import streamlit as st
 from streamlit_folium import st_folium
 
 from map_visualization import create_fire_map
+from api_client import get_health
 
 
 # ============================================================
@@ -25,6 +26,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ============================================================
+# BACKEND CONNECTION TEST
+# ============================================================
+
+try:
+    backend_status = get_health()
+    st.sidebar.success("🟢 Backend Connected")
+except Exception as e:
+    st.sidebar.error(f"🔴 Backend Offline: {e}")
 
 # ============================================================
 # CUSTOM CSS  (UI/UX REDESIGN — MAP IS UNAFFECTED BY THIS BLOCK)
