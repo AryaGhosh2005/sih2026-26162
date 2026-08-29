@@ -42,6 +42,10 @@ html, body, [class*="css"] {
     font-family: -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
 }
 
+html, body {
+    background-color: #05080f !important;
+}
+
 .stApp {
     background: radial-gradient(circle at 15% 0%, #0a0f18 0%, #05080f 55%) fixed;
     color: #e8edf5;
@@ -430,6 +434,17 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 
 div[data-testid="stVerticalBlock"] iframe {
     border-radius: 8px;
+    background: #05080f !important;
+    background-color: #05080f !important;
+}
+
+/* Prevent white flash while the map iframe remounts on every
+   click-triggered rerun — color the wrapper behind it too */
+div[data-testid="stVerticalBlock"]:has(> div > iframe),
+div[data-testid="element-container"]:has(iframe),
+div[data-testid="stCustomComponentV1"] {
+    background: #05080f !important;
+    background-color: #05080f !important;
 }
 
 
@@ -963,10 +978,17 @@ div[data-testid="stDateInputCalendar"] thead th * {
 /* The entire Source Type component */
 div[data-testid="stMultiSelect"]:has(input[aria-label="Source"]) {
     background: rgba(5, 10, 18, 0.88) !important;
-    border: 1px solid #ff6b00 !important;
+    border: 1px solid transparent !important;
     border-radius: 14px !important;
     padding: 8px !important;
+    box-shadow: none !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
 
+/* Neon border + glow only when hovering or focused (typing/selecting) */
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"]):hover,
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"]):focus-within {
+    border: 1px solid #ff6b00 !important;
     box-shadow:
         0 0 5px rgba(255, 107, 0, 0.95),
         0 0 14px rgba(255, 107, 0, 0.55),
@@ -1069,30 +1091,30 @@ div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
 div[data-testid="stMultiSelectTagsContainer"]
 [data-baseweb="tag"] {
 
-    /* translucent dark-red glass */
+    /* soothing muted brick-red glass */
     background: linear-gradient(
         135deg,
-        rgba(120, 20, 25, 0.72),
-        rgba(55, 5, 10, 0.58)
+        rgba(120, 62, 58, 0.55),
+        rgba(70, 34, 32, 0.50)
     ) !important;
 
-    /* thin glass edge */
-    border: 1px solid rgba(255, 100, 90, 0.45) !important;
+    /* thin, soft edge — no saturated glow */
+    border: 1px solid rgba(180, 110, 100, 0.32) !important;
 
     /* pill shape */
     border-radius: 999px !important;
 
-    /* glass depth + subtle glow */
+    /* soft neutral depth, no colored glow */
     box-shadow:
-        inset 0 1px 1px rgba(255,255,255,0.18),
-        inset 0 -2px 5px rgba(0,0,0,0.25),
-        0 2px 8px rgba(90,0,0,0.25) !important;
+        inset 0 1px 1px rgba(255,255,255,0.10),
+        inset 0 -2px 5px rgba(0,0,0,0.20),
+        0 1px 4px rgba(0,0,0,0.25) !important;
 
     /* actual glass blur */
-    backdrop-filter: blur(10px) saturate(120%) !important;
-    -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
+    backdrop-filter: blur(10px) saturate(100%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(100%) !important;
 
-    color: rgba(255,255,255,0.95) !important;
+    color: rgba(255,255,255,0.92) !important;
 
     transition: all 0.2s ease !important;
 }
@@ -1140,25 +1162,25 @@ span[role="option"][data-tag-index] {
 
     background: linear-gradient(
         135deg,
-        rgba(110, 18, 24, 0.72),
-        rgba(45, 5, 10, 0.62)
+        rgba(115, 60, 56, 0.55),
+        rgba(62, 30, 28, 0.52)
     ) !important;
 
-    background-color: rgba(70, 8, 14, 0.68) !important;
+    background-color: rgba(80, 40, 38, 0.55) !important;
 
-    border: 1px solid rgba(255, 95, 80, 0.50) !important;
+    border: 1px solid rgba(175, 105, 95, 0.30) !important;
 
     border-radius: 999px !important;
 
     box-shadow:
-        inset 0 1px 1px rgba(255,255,255,0.16),
-        inset 0 -2px 5px rgba(0,0,0,0.30),
-        0 2px 8px rgba(100,0,0,0.22) !important;
+        inset 0 1px 1px rgba(255,255,255,0.10),
+        inset 0 -2px 5px rgba(0,0,0,0.22),
+        0 1px 4px rgba(0,0,0,0.25) !important;
 
-    backdrop-filter: blur(10px) saturate(120%) !important;
-    -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
+    backdrop-filter: blur(10px) saturate(100%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(100%) !important;
 
-    color: rgba(255,255,255,0.95) !important;
+    color: rgba(255,255,255,0.92) !important;
 
     overflow: hidden !important;
 }
@@ -1206,11 +1228,18 @@ div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"]) {
     background: rgba(5, 10, 18, 0.88) !important;
     background-color: rgba(5, 10, 18, 0.88) !important;
 
-    border: 1px solid #ff6b00 !important;
+    border: 1px solid transparent !important;
     border-radius: 14px !important;
 
     padding: 8px !important;
+    box-shadow: none !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
 
+/* Neon border + glow only when hovering or focused (typing/selecting) */
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"]):hover,
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"]):focus-within {
+    border: 1px solid #ff6b00 !important;
     box-shadow:
     0 0 5px rgba(255, 107, 0, 0.95),
     0 0 14px rgba(255, 107, 0, 0.55),
@@ -1659,7 +1688,7 @@ with st.sidebar:
 
     max_distance = st.slider(
         "Maximum distance",
-        1, 50, 50, 1,
+        1, 10, 10, 1,
         format="%d km",
         label_visibility="collapsed"
     )
@@ -2153,19 +2182,59 @@ with intel_col:
         except Exception:
             confidence_value = 0
 
+        # Industrial Proximity: closer to a facility = higher score
+        try:
+            distance_value = float(distance)
+        except Exception:
+            distance_value = 999
+
+        if distance_value <= 2:
+            proximity_value = 96
+        elif distance_value <= 5:
+            proximity_value = 80
+        elif distance_value <= 8:
+            proximity_value = 60
+        elif distance_value <= 15:
+            proximity_value = 35
+        else:
+            proximity_value = 15
+
+        # Thermal Intensity: scaled from brightness (Kelvin)
+        try:
+            brightness_value = float(brightness)
+        except Exception:
+            brightness_value = 280
+
+        thermal_value = int(
+            max(
+                0,
+                min(
+                    100,
+                    ((brightness_value - 280) / 100) * 100
+                )
+            )
+        )
+
+        # Persistence: higher when this event is itself a
+        # detected persistent thermal source
+        persistence_value = (
+            88
+            if classification == "THERMAL_SOURCE"
+            else 45
+        )
 
         explanation_values = [
             (
                 "Industrial Proximity",
-                96
+                proximity_value
             ),
             (
                 "Thermal Intensity",
-                89
+                thermal_value
             ),
             (
                 "Persistence",
-                84
+                persistence_value
             ),
             (
                 "Detection Confidence",

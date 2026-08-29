@@ -248,6 +248,89 @@ def create_fire_map(
 
 
             # -------------------------------------------------
+            # Risk score + contribution breakdown
+            # (same formula as calculate_risk() in app.py, so
+            # this always agrees with the Event Intelligence panel)
+            # -------------------------------------------------
+
+            try:
+                _brightness_val = float(brightness)
+            except Exception:
+                _brightness_val = 0
+
+            try:
+                _confidence_val = float(confidence)
+            except Exception:
+                _confidence_val = 0
+
+            try:
+                _distance_val = float(distance)
+            except Exception:
+                _distance_val = 999
+
+            brightness_pts = max(
+                0,
+                min(
+                    40,
+                    ((_brightness_val - 280) / 100) * 40
+                )
+            )
+
+            confidence_pts = (
+                _confidence_val / 100
+            ) * 30
+
+            if _distance_val <= 2:
+                proximity_pts = 30
+            elif _distance_val <= 5:
+                proximity_pts = 22
+            elif _distance_val <= 8:
+                proximity_pts = 14
+            elif _distance_val <= 15:
+                proximity_pts = 7
+            else:
+                proximity_pts = 2
+
+            industrial_pts = (
+                5 if classification == "INDUSTRIAL_FIRE" else 0
+            )
+
+            risk_score = max(
+                0,
+                min(
+                    100,
+                    int(round(
+                        brightness_pts
+                        + confidence_pts
+                        + proximity_pts
+                        + industrial_pts
+                    ))
+                )
+            )
+
+            if risk_score >= 80:
+                risk_level = "CRITICAL"
+                risk_level_color = "#ef4444"
+                recommendation = "Immediate emergency response required"
+            elif risk_score >= 60:
+                risk_level = "HIGH"
+                risk_level_color = "#ff8a00"
+                recommendation = "Immediate verification recommended"
+            elif risk_score >= 40:
+                risk_level = "MEDIUM"
+                risk_level_color = "#f5bd24"
+                recommendation = "Schedule inspection and monitor closely"
+            else:
+                risk_level = "LOW"
+                risk_level_color = "#35cf66"
+                recommendation = "Routine monitoring sufficient"
+
+            brightness_pts_display = int(round(brightness_pts))
+            confidence_pts_display = int(round(confidence_pts))
+            proximity_pts_display = int(round(proximity_pts))
+
+
+            # -------------------------------------------------
             # Heatmap data
             # -------------------------------------------------
 
@@ -794,6 +877,106 @@ def create_fire_map(
                         0.80;
                 }}
 
+                /* =========================================
+                   FIRE RISK ANALYSIS SECTION
+                   ========================================= */
+
+                .thermal-section-title {{
+
+                    font-size:
+                        10px;
+
+                    font-weight:
+                        800;
+
+                    letter-spacing:
+                        0.8px;
+
+                    color:
+                        #ffffff;
+
+                    margin-bottom:
+                        8px;
+                }}
+
+
+                .thermal-risk-row {{
+
+                    display:
+                        flex;
+
+                    justify-content:
+                        space-between;
+
+                    align-items:
+                        center;
+
+                    padding:
+                        5px 2px;
+                }}
+
+
+                .thermal-risk-label {{
+
+                    font-size:
+                        10px;
+
+                    color:
+                        #7f8ba3;
+                }}
+
+
+                .thermal-risk-score {{
+
+                    font-size:
+                        15px;
+
+                    font-weight:
+                        800;
+
+                    color:
+                        #ffffff;
+                }}
+
+
+                .thermal-risk-level {{
+
+                    font-size:
+                        11px;
+
+                    font-weight:
+                        800;
+
+                    letter-spacing:
+                        0.5px;
+                }}
+
+
+                .thermal-contrib-positive {{
+
+                    color:
+                        #55e6a5;
+                }}
+
+
+                .thermal-recommendation-text {{
+
+                    margin-top:
+                        4px;
+
+                    font-size:
+                        10.5px;
+
+                    font-weight:
+                        600;
+
+                    line-height:
+                        1.4;
+
+                    color:
+                        #f4f7fb;
+                }}
+
             </style>
 
 
@@ -828,15 +1011,6 @@ def create_fire_map(
                 <div class="thermal-popup-body">
 
 
-                    <!-- STATUS -->
-
-                    <div class="thermal-status">
-
-                        ● ACTIVE DETECTION
-
-                    </div>
-
-
                     <!-- FACILITY -->
 
                     <div class="thermal-facility-card">
@@ -857,7 +1031,49 @@ def create_fire_map(
                     <div class="thermal-divider"></div>
 
 
-                    <!-- BRIGHTNESS -->
+                    <!-- SECTION TITLE -->
+
+                    <div class="thermal-section-title">
+                        FIRE RISK ANALYSIS
+                    </div>
+
+
+                    <!-- RISK SCORE -->
+
+                    <div class="thermal-risk-row">
+
+                        <span class="thermal-risk-label">
+                            Risk Score
+                        </span>
+
+                        <span class="thermal-risk-score">
+                            {risk_score}
+                        </span>
+
+                    </div>
+
+
+                    <!-- RISK LEVEL -->
+
+                    <div class="thermal-risk-row">
+
+                        <span class="thermal-risk-label">
+                            Risk Level
+                        </span>
+
+                        <span class="thermal-risk-level" style="color:{risk_level_color};">
+                            {risk_level}
+                        </span>
+
+                    </div>
+
+
+                    <!-- DIVIDER -->
+
+                    <div class="thermal-divider"></div>
+
+
+                    <!-- BRIGHTNESS CONTRIBUTION -->
 
                     <div class="thermal-metric">
 
@@ -865,14 +1081,14 @@ def create_fire_map(
                             Brightness
                         </span>
 
-                        <span class="thermal-metric-value">
-                            {brightness} K
+                        <span class="thermal-metric-value thermal-contrib-positive">
+                            +{brightness_pts_display}
                         </span>
 
                     </div>
 
 
-                    <!-- CONFIDENCE -->
+                    <!-- CONFIDENCE CONTRIBUTION -->
 
                     <div class="thermal-metric">
 
@@ -880,39 +1096,59 @@ def create_fire_map(
                             Confidence
                         </span>
 
-                        <span class="thermal-metric-value thermal-confidence">
-                            {confidence}%
+                        <span class="thermal-metric-value thermal-contrib-positive">
+                            +{confidence_pts_display}
                         </span>
 
                     </div>
 
 
-                    <!-- DISTANCE -->
+                    <!-- PROXIMITY CONTRIBUTION -->
 
                     <div class="thermal-metric">
 
                         <span class="thermal-metric-name">
-                            Industry Distance
+                            Proximity
                         </span>
 
-                        <span class="thermal-metric-value">
-                            {distance} km
+                        <span class="thermal-metric-value thermal-contrib-positive">
+                            +{proximity_pts_display}
                         </span>
 
                     </div>
 
 
-                    <!-- COORDINATES -->
+                    <!-- INDUSTRIAL CONTRIBUTION -->
 
-                    <div class="thermal-coordinates">
+                    <div class="thermal-metric">
+
+                        <span class="thermal-metric-name">
+                            Industrial
+                        </span>
+
+                        <span class="thermal-metric-value thermal-contrib-positive">
+                            +{industrial_pts}
+                        </span>
+
+                    </div>
+
+
+                    <!-- DIVIDER -->
+
+                    <div class="thermal-divider"></div>
+
+
+                    <!-- RECOMMENDATION -->
+
+                    <div>
 
                         <span class="thermal-label">
-                            Coordinates
+                            Recommendation
                         </span>
 
-                        <span class="thermal-coordinate-value">
-                            {latitude:.4f}, {longitude:.4f}
-                        </span>
+                        <div class="thermal-recommendation-text">
+                            {recommendation}
+                        </div>
 
                     </div>
 
