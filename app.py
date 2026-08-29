@@ -10,7 +10,6 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from streamlit_folium import st_folium
-
 from map_visualization import create_fire_map
 
 
@@ -54,7 +53,7 @@ html, body, [class*="css"] {
 }
 
 div[data-testid="stVerticalBlock"] {
-    gap: 0.4rem;
+    gap: 0.6rem;
 }
 
 hr, div[data-testid="stDivider"] {
@@ -88,14 +87,16 @@ section[data-testid="stSidebar"] .block-container {
 
 .sidebar-brand-title {
     color: #ffffff;
-    font-size: 13px;
+    font-size: 21px;
     font-weight: 800;
-    letter-spacing: 1.2px;
-}
+    letter-spacing: 0.8px;
+    position: relative;
+    top: -34px;
+  }
 
 .sidebar-brand-sub {
     color: #62708a;
-    font-size: 9px;
+    font-size: 12px;
     letter-spacing: .5px;
 }
 
@@ -105,7 +106,7 @@ section[data-testid="stSidebar"] .block-container {
     font-weight: 750;
     letter-spacing: 1.3px;
     margin-top: 16px;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -434,7 +435,9 @@ div[data-testid="stVerticalBlock"] iframe {
 
 /* ---------------- MISC WIDGETS ---------------- */
 
-div[data-baseweb="slider"] { margin-top: -5px; }
+div[data-baseweb="slider"] {
+    margin-top: 8px !important;
+}
 
 div[data-testid="stAlert"] {
     background: #0c1622;
@@ -443,7 +446,885 @@ div[data-testid="stAlert"] {
 
 button[data-baseweb="tab"] { color: #778498; }
 button[data-baseweb="tab"][aria-selected="true"] { color: #ffffff; }
+/* ============================================================
+   INDUSTRIAL FIRE DATE PICKER
+   NEW STREAMLIT CALENDAR
+   ============================================================ */
 
+/* ============================================================
+   DATE INPUT FIELD
+   ============================================================ */
+
+div[data-testid="stDateInput"] {
+    width: 100% !important;
+}
+
+/* Actual date field used by current Streamlit */
+div[data-testid="stDateInputField"] {
+    background: #080d15 !important;
+    border: 1px solid #273445 !important;
+    border-radius: 8px !important;
+    color: #dce3ed !important;
+}
+
+/* Focused date field */
+div[data-testid="stDateInputField"]:focus-within {
+    border-color: #ff6b00 !important;
+
+    box-shadow:
+        0 0 0 1px rgba(255,107,0,.55),
+        0 0 10px rgba(255,107,0,.35) !important;
+}
+
+/* ============================================================
+   DATE FIELD — COMPLETE DATE TEXT
+   ============================================================ */
+
+div[data-testid="stDateInputField"] * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Keep focused date segment orange */
+div[data-testid="stDateInputField"]
+[role="spinbutton"][data-focused] {
+    background: #ff6b00 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+
+/* ============================================================
+   CALENDAR POPUP
+   ============================================================ */
+
+div[data-testid="stDateInputCalendar"] {
+    background: #080d15 !important;
+
+    border: 1px solid #ff6b00 !important;
+    border-radius: 10px !important;
+
+    padding: 10px 12px !important;
+
+    box-shadow:
+        0 0 4px rgba(255,107,0,.90),
+        0 0 12px rgba(255,107,0,.60),
+        0 0 26px rgba(255,107,0,.28) !important;
+
+    color: #dce3ed !important;
+}
+
+
+/* ============================================================
+   CALENDAR ITSELF
+   ============================================================ */
+
+div[data-testid="stDateInputCalendar"] table {
+    background: #080d15 !important;
+    color: #dce3ed !important;
+}
+
+div[data-testid="stDateInputCalendar"] [role="grid"] {
+    background: #080d15 !important;
+}
+
+div[data-testid="stDateInputCalendar"] [role="row"] {
+    background: #080d15 !important;
+}
+
+
+/* ============================================================
+   MONTH / YEAR HEADER
+   ============================================================ */
+
+div[data-testid="stDateInputCalendar"] header {
+    background: #080d15 !important;
+
+    color: #ff7a00 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+
+/* Month + year buttons */
+
+div[data-testid="stDateInputCalendar"] header button {
+    background: transparent !important;
+
+    border: none !important;
+
+    color: #ff7a00 !important;
+
+    font-weight: 700 !important;
+}
+
+
+/* Make "August 2026" clearly visible */
+
+div[data-testid="stDateInputCalendar"]
+header button {
+    font-size: 12px !important;
+}
+
+
+/* Previous / Next buttons */
+
+div[data-testid="stDateInputCalendar"]
+header button[aria-label="Previous month"],
+div[data-testid="stDateInputCalendar"]
+header button[aria-label="Next month"] {
+
+    color: #ffffff !important;
+
+    width: 28px !important;
+    height: 28px !important;
+
+    border-radius: 6px !important;
+}
+
+
+/* Arrow hover */
+
+div[data-testid="stDateInputCalendar"]
+header button[aria-label="Previous month"]:hover,
+div[data-testid="stDateInputCalendar"]
+header button[aria-label="Next month"]:hover {
+
+    background: rgba(255,107,0,.18) !important;
+
+    color: #ff7a00 !important;
+}
+
+
+/* Month/year selector hover */
+
+div[data-testid="stDateInputCalendar"]
+header button:hover {
+
+    background: rgba(255,107,0,.10) !important;
+
+    color: #ff8a20 !important;
+}
+
+
+/* ============================================================
+   WEEKDAY HEADER
+   ============================================================ */
+
+div[data-testid="stDateInputCalendar"]
+[role="columnheader"] {
+
+    background: #080d15 !important;
+
+    color: #dce3ed !important;
+
+    font-size: 10px !important;
+
+    font-weight: 600 !important;
+
+    text-align: center !important;
+}
+
+
+/* ============================================================
+   NORMAL DATES
+   ============================================================ */
+
+div[data-testid="stDateInputCalendar"]
+[role="gridcell"] {
+
+    background: transparent !important;
+
+    color: #dce3ed !important;
+
+    text-align: center !important;
+}
+
+
+/* Calendar date cells */
+
+div[data-testid="stDateInputCalendar"]
+[role="gridcell"] {
+
+    cursor: pointer !important;
+}
+
+
+/* ============================================================
+   DATE HOVER
+   ============================================================ */
+
+div[data-testid="stDateInputCalendar"]
+[role="gridcell"][data-hovered] {
+
+    background: rgba(255,107,0,.15) !important;
+
+    color: #ffffff !important;
+
+    border-radius: 6px !important;
+}
+/* ============================================================
+   OUTSIDE MONTH DATES — DIM GRAY
+   ============================================================ */
+
+div[data-testid="stDateInputCalendar"]
+[role="gridcell"][data-outside-month],
+div[data-testid="stDateInputCalendar"]
+[role="gridcell"][data-outside-month] * {
+
+    color: #596273 !important;
+    -webkit-text-fill-color: #596273 !important;
+    opacity: .65 !important;
+}
+
+
+
+
+/* ============================================================
+   SELECTED RANGE
+   ============================================================ */
+
+/* Dates inside selected range */
+
+div[data-testid="stDateInputCalendar"]
+[role="gridcell"][data-selected] {
+
+    background: rgba(255,107,0,.20) !important;
+
+    color: #ffffff !important;
+}
+
+
+/* Start date */
+
+div[data-testid="stDateInputCalendar"]
+[role="gridcell"][data-selection-start] {
+
+    background: #ff6b00 !important;
+
+    color: #ffffff !important;
+
+    border-radius: 6px !important;
+
+    font-weight: 700 !important;
+
+    box-shadow:
+        0 0 5px rgba(255,107,0,.90),
+        0 0 12px rgba(255,107,0,.50) !important;
+}
+
+
+/* End date */
+
+div[data-testid="stDateInputCalendar"]
+[role="gridcell"][data-selection-end] {
+
+    background: #ff6b00 !important;
+
+    color: #ffffff !important;
+
+    border-radius: 6px !important;
+
+    font-weight: 700 !important;
+
+    box-shadow:
+        0 0 5px rgba(255,107,0,.90),
+        0 0 12px rgba(255,107,0,.50) !important;
+}
+
+
+/* Single day / same start and end */
+
+div[data-testid="stDateInputCalendar"]
+[role="gridcell"][data-selection-start][data-selection-end] {
+
+    background: #ff6b00 !important;
+
+    color: #ffffff !important;
+
+    border-radius: 6px !important;
+}
+
+
+/* ============================================================
+   TODAY
+   ============================================================ */
+
+div[data-testid="stDateInputCalendar"]
+[role="gridcell"][data-today] {
+
+    outline: 1px solid #ff6b00 !important;
+
+    outline-offset: -1px !important;
+}
+
+
+/* ============================================================
+   QUICK SELECT FOOTER
+   ============================================================ */
+
+div[data-testid="stDateInputQuickSelect"] {
+
+    background: #080d15 !important;
+
+    border-top: 1px solid rgba(255,107,0,.30) !important;
+
+    color: #dce3ed !important;
+
+    margin-top: 8px !important;
+
+    padding-top: 8px !important;
+}
+
+
+/* "Date range" text */
+
+div[data-testid="stDateInputQuickSelect"] {
+    color: #dce3ed !important;
+}
+
+
+/* Past Week button */
+
+div[data-testid="stDateInputQuickSelect"] button {
+
+    background: transparent !important;
+
+    color: #dce3ed !important;
+
+    border: none !important;
+
+    border-radius: 6px !important;
+}
+
+
+/* Quick select hover */
+
+div[data-testid="stDateInputQuickSelect"] button:hover {
+
+    background: rgba(255,107,0,.15) !important;
+
+    color: #ff7a00 !important;
+}
+
+
+/* ============================================================
+   MONTH / YEAR DROPDOWN POPUPS
+   ============================================================ */
+
+div[data-testid="stDateInputHeaderPickerPopover"] {
+
+    background: #080d15 !important;
+
+    border: 1px solid #ff6b00 !important;
+
+    border-radius: 8px !important;
+
+    box-shadow:
+        0 0 8px rgba(255,107,0,.45) !important;
+}
+
+
+/* Month/year dropdown options */
+
+div[data-testid="stDateInputHeaderPickerPopover"]
+[role="option"] {
+
+    background: #080d15 !important;
+
+    color: #dce3ed !important;
+}
+
+
+/* Dropdown option hover */
+
+div[data-testid="stDateInputHeaderPickerPopover"]
+[role="option"]:hover {
+
+    background: rgba(255,107,0,.18) !important;
+
+    color: #ffffff !important;
+}
+
+
+/* Selected month/year */
+
+div[data-testid="stDateInputHeaderPickerPopover"]
+[aria-selected="true"] {
+
+    background: #ff6b00 !important;
+
+    color: #ffffff !important;
+}
+
+
+/* ============================================================
+   QUICK SELECT DROPDOWN
+   ============================================================ */
+
+div[data-testid="stDateInputQuickSelectPopover"] {
+
+    background: #080d15 !important;
+
+    border: 1px solid #ff6b00 !important;
+
+    border-radius: 8px !important;
+
+    box-shadow:
+        0 0 8px rgba(255,107,0,.45) !important;
+}
+
+div[data-testid="stDateInputQuickSelectPopover"]
+[role="option"] {
+
+    background: #080d15 !important;
+
+    color: #dce3ed !important;
+}
+
+div[data-testid="stDateInputQuickSelectPopover"]
+[role="option"]:hover {
+
+    background: rgba(255,107,0,.18) !important;
+
+    color: #ffffff !important;
+}
+div[data-testid="stDateInputCalendar"] {
+    background: #080d15 !important;
+    border: 3px solid #ff6b00 !important;
+    box-shadow: 0 0 20px #ff6b00 !important;
+}
+/* DATE INPUT - MAKE THE DISPLAYED DATE WHITE */
+section[data-testid="stSidebar"] input {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+/* CALENDAR - MAKE WEEKDAY LETTERS WHITE */
+div[data-testid="stDateInputCalendar"] * {
+    color: #ffffff !important;
+}
+/* ============================================================
+   DIM PREVIOUS / NEXT MONTH DATES
+   ============================================================ */
+
+div[data-testid="stDateInputCalendar"] 
+div[data-outside-month="true"] {
+    color: #596273 !important;
+    opacity: 0.65 !important;
+}
+/* ============================================================
+   CALENDAR WEEKDAY GLASS BUBBLES
+   ============================================================ */
+
+div[data-testid="stDateInputCalendar"] thead th {
+    background: rgba(255, 255, 255, 0.035) !important;
+    border: 1px solid rgba(255, 107, 0, 0.22) !important;
+    border-radius: 6px !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 2px 6px rgba(0, 0, 0, 0.25) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+/* ============================================================
+   WEEKDAY LETTERS — INDIVIDUAL NEON ORANGE GLASS BOXES
+   ============================================================ */
+
+div[data-testid="stDateInputCalendar"] thead th {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.035) !important;
+
+    border: 1px solid #ff6b00 !important;
+    border-radius: 5px !important;
+
+    box-shadow:
+        0 0 5px rgba(255, 107, 0, 0.85),
+        inset 0 0 6px rgba(255, 107, 0, 0.10) !important;
+
+    padding: 5px 0 !important;
+
+    font-weight: 600 !important;
+    text-align: center !important;
+}
+
+/* Keep the S M T W T F S letters white */
+div[data-testid="stDateInputCalendar"] thead th * {
+    color: #ffffff !important;
+}
+/* =========================================================
+   SOURCE TYPE — NEON GLASS PANEL
+   ========================================================= */
+
+/* The entire Source Type component */
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"]) {
+    background: rgba(5, 10, 18, 0.88) !important;
+    border: 1px solid #ff6b00 !important;
+    border-radius: 14px !important;
+    padding: 8px !important;
+
+    box-shadow:
+        0 0 5px rgba(255, 107, 0, 0.95),
+        0 0 14px rgba(255, 107, 0, 0.55),
+        inset 0 0 12px rgba(255, 107, 0, 0.08) !important;
+}
+
+
+/* IMPORTANT:
+   Remove the WHITE BaseWeb background from
+   the nested elements inside Source Type
+*/
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+div[data-baseweb="select"],
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+div[data-baseweb="select"] > div,
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+div[data-testid="stMultiSelectTagsContainer"] {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+
+/* Remove white background from the internal
+   React/BaseWeb wrapper */
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+div[class*="react-aria-ComboBox"],
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+div[class*="emotion-cache"] {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+
+/* Source input itself */
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+input[aria-label="Source"] {
+    background: transparent !important;
+    color: #ffffff !important;
+}
+
+
+/* =========================================================
+   SELECTED SOURCE TAGS
+   ========================================================= */
+
+
+/* =========================================================
+   CLEAR (X) BUTTON
+   ========================================================= */
+
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+button[aria-label="Clear"] {
+    background: rgba(255, 255, 255, 0.12) !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+
+    border-radius: 50% !important;
+
+    color: #ff6b00 !important;
+
+    box-shadow:
+        0 0 6px rgba(255, 107, 0, 0.35) !important;
+}
+
+
+/* =========================================================
+   DROPDOWN ARROW
+   ========================================================= */
+
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+button[aria-label="Open"] {
+    background: transparent !important;
+    color: #ff6b00 !important;
+}
+
+
+/* Make arrow/icon orange */
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+button[aria-label="Open"] svg {
+    color: #ff6b00 !important;
+    fill: #ff6b00 !important;
+}
+
+
+/* Remove BaseWeb's red background from anything INSIDE the tag */
+
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+div[data-testid="stMultiSelectTagsContainer"]
+[data-baseweb="tag"] * {
+
+    background-color: transparent !important;
+    background-image: none !important;
+}
+/* =========================================================
+   SOURCE TAG — DARK RED GLASS PILL
+   ========================================================= */
+
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+div[data-testid="stMultiSelectTagsContainer"]
+[data-baseweb="tag"] {
+
+    /* translucent dark-red glass */
+    background: linear-gradient(
+        135deg,
+        rgba(120, 20, 25, 0.72),
+        rgba(55, 5, 10, 0.58)
+    ) !important;
+
+    /* thin glass edge */
+    border: 1px solid rgba(255, 100, 90, 0.45) !important;
+
+    /* pill shape */
+    border-radius: 999px !important;
+
+    /* glass depth + subtle glow */
+    box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.18),
+        inset 0 -2px 5px rgba(0,0,0,0.25),
+        0 2px 8px rgba(90,0,0,0.25) !important;
+
+    /* actual glass blur */
+    backdrop-filter: blur(10px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
+
+    color: rgba(255,255,255,0.95) !important;
+
+    transition: all 0.2s ease !important;
+}
+
+
+/* White text */
+
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+div[data-testid="stMultiSelectTagsContainer"]
+[data-baseweb="tag"] span {
+
+    color: rgba(255,255,255,0.95) !important;
+    font-weight: 500 !important;
+}
+
+
+/* X button */
+
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+div[data-testid="stMultiSelectTagsContainer"]
+[data-baseweb="tag"] button {
+
+    background: transparent !important;
+    border: none !important;
+    color: rgba(255,255,255,0.75) !important;
+}
+
+
+/* X icon */
+
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+div[data-testid="stMultiSelectTagsContainer"]
+[data-baseweb="tag"] svg {
+
+    color: rgba(255,255,255,0.9) !important;
+    fill: rgba(255,255,255,0.9) !important;
+}
+/* =========================================================
+   ACTUAL STREAMLIT SELECTED PILLS
+   ========================================================= */
+
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+div[data-testid="stMultiSelectTagsContainer"]
+span[role="option"][data-tag-index] {
+
+    background: linear-gradient(
+        135deg,
+        rgba(110, 18, 24, 0.72),
+        rgba(45, 5, 10, 0.62)
+    ) !important;
+
+    background-color: rgba(70, 8, 14, 0.68) !important;
+
+    border: 1px solid rgba(255, 95, 80, 0.50) !important;
+
+    border-radius: 999px !important;
+
+    box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.16),
+        inset 0 -2px 5px rgba(0,0,0,0.30),
+        0 2px 8px rgba(100,0,0,0.22) !important;
+
+    backdrop-filter: blur(10px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
+
+    color: rgba(255,255,255,0.95) !important;
+
+    overflow: hidden !important;
+}
+/* TEXT INSIDE ACTUAL SOURCE PILL */
+
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+div[data-testid="stMultiSelectTagsContainer"]
+span[role="option"][data-tag-index] > span {
+
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+
+    color: rgba(255,255,255,0.95) !important;
+}
+/* X INSIDE ACTUAL SOURCE PILL */
+
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+div[data-testid="stMultiSelectTagsContainer"]
+span[role="option"][data-tag-index] button {
+
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+
+    color: rgba(255,255,255,0.80) !important;
+}
+/* X ICON */
+
+div[data-testid="stMultiSelect"]:has(input[aria-label="Source"])
+div[data-testid="stMultiSelectTagsContainer"]
+span[role="option"][data-tag-index] svg {
+
+    background: transparent !important;
+
+    color: rgba(255,255,255,0.85) !important;
+    fill: rgba(255,255,255,0.85) !important;
+}
+/* =========================================================
+   SATELLITE — MATCH SOURCE TYPE DARK GLASS PANEL
+   ========================================================= */
+
+/* Entire Satellite multiselect box */
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"]) {
+    background: rgba(5, 10, 18, 0.88) !important;
+    background-color: rgba(5, 10, 18, 0.88) !important;
+
+    border: 1px solid #ff6b00 !important;
+    border-radius: 14px !important;
+
+    padding: 8px !important;
+
+    box-shadow:
+    0 0 5px rgba(255, 107, 0, 0.95),
+    0 0 14px rgba(255, 107, 0, 0.55),
+    inset 0 0 12px rgba(255, 107, 0, 0.08) !important;
+}
+
+
+/* Remove Streamlit/BaseWeb WHITE background */
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"])
+div[data-baseweb="select"],
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"])
+div[data-baseweb="select"] > div,
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"])
+div[data-testid="stMultiSelectTagsContainer"] {
+    background: #050a12 !important;
+    background-color: #050a12 !important;
+    box-shadow: none !important;
+}
+
+
+/* Remove white React/BaseWeb wrapper */
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"])
+div[class*="react-aria-ComboBox"],
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"])
+div[class*="emotion-cache"] {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+
+/* Satellite input */
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"])
+input[aria-label="Satellite"] {
+    background: transparent !important;
+    color: #ffffff !important;
+}
+
+
+/* =========================================================
+   SATELLITE SELECTED VALUE — DARK RED GLASS PILL
+   ========================================================= */
+
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"])
+div[data-testid="stMultiSelectTagsContainer"]
+[data-baseweb="tag"] {
+
+    background: linear-gradient(
+        135deg,
+        rgba(120, 20, 25, 0.72),
+        rgba(55, 5, 10, 0.58)
+    ) !important;
+
+    background-color: rgba(80, 8, 15, 0.72) !important;
+
+    border: 1px solid rgba(255, 100, 90, 0.45) !important;
+
+    border-radius: 7px !important;
+
+    box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.18),
+        inset 0 -2px 5px rgba(0,0,0,0.25),
+        0 2px 8px rgba(90,0,0,0.25) !important;
+
+    backdrop-filter: blur(10px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
+
+    color: rgba(255,255,255,0.95) !important;
+}
+
+
+/* Satellite pill text */
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"])
+div[data-testid="stMultiSelectTagsContainer"]
+[data-baseweb="tag"] span {
+    color: rgba(255,255,255,0.95) !important;
+    font-weight: 500 !important;
+}
+
+
+/* Satellite pill X button */
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"])
+div[data-testid="stMultiSelectTagsContainer"]
+[data-baseweb="tag"] button {
+    background: transparent !important;
+    border: none !important;
+    color: rgba(255,255,255,0.8) !important;
+}
+
+
+/* Satellite pill X icon */
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"])
+div[data-testid="stMultiSelectTagsContainer"]
+[data-baseweb="tag"] svg {
+    color: rgba(255,255,255,0.9) !important;
+    fill: rgba(255,255,255,0.9) !important;
+}
+
+
+/* =========================================================
+   SATELLITE DROPDOWN ARROW
+   ========================================================= */
+
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"])
+button[aria-label="Open"] {
+    background: transparent !important;
+    color: #ff6b00 !important;
+}
+
+
+div[data-testid="stMultiSelect"]:has(input[aria-label="Satellite"])
+button[aria-label="Open"] svg {
+    color: #ff6b00 !important;
+    fill: #ff6b00 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -700,7 +1581,6 @@ with st.sidebar:
 
     st.markdown(
         '<div class="sidebar-brand">'
-        '<div style="font-size:20px;">🔥</div>'
         '<div>'
         '<div class="sidebar-brand-title">CONTROL PANEL</div>'
         '<div class="sidebar-brand-sub">SIH 26162 &nbsp;·&nbsp; Fire Detection</div>'
@@ -709,7 +1589,7 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-    st.markdown('<div class="sidebar-section">🕒 TIME RANGE</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sidebar-section">📅 DATE RANGE</div>', unsafe_allow_html=True)
 
     valid_dates = fires_df["acquisition_date"].dropna()
 
@@ -724,19 +1604,22 @@ with st.sidebar:
         max_date = datetime.now().date()
 
     date_range = st.date_input(
-        "Date range",
-        value=(min_date, max_date),
-        min_value=min_date,
-        max_value=max_date,
-        label_visibility="collapsed"
-    )
+    "Date range",
+    value=(min_date, max_date),
+    label_visibility="collapsed"
+)
 
-    st.markdown('<div class="sidebar-section">⚠ RISK LEVEL</div>', unsafe_allow_html=True)
+    st.markdown(
+    '<div class="sidebar-section">⚠ RISK LEVEL</div>',
+    unsafe_allow_html=True
+)
 
-    critical_enabled = st.checkbox("🔴 Critical", value=True)
-    high_enabled = st.checkbox("🟠 High", value=True)
-    medium_enabled = st.checkbox("🟡 Medium", value=True)
-    low_enabled = st.checkbox("🟢 Low", value=True)
+    selected_risk = st.radio(
+    "Risk level",
+    ["🔴 Critical", "🟠 High", "🟡 Medium", "🟢 Low"],
+    index=2,
+    label_visibility="collapsed"
+)
 
     st.markdown('<div class="sidebar-section">📡 SOURCE TYPE</div>', unsafe_allow_html=True)
 
@@ -939,19 +1822,14 @@ else:
     )
 
 
-allowed_risks = []
+risk_mapping = {
+    "🔴 Critical": "CRITICAL",
+    "🟠 High": "HIGH",
+    "🟡 Medium": "MEDIUM",
+    "🟢 Low": "LOW"
+}
 
-if critical_enabled:
-    allowed_risks.append("CRITICAL")
-
-if high_enabled:
-    allowed_risks.append("HIGH")
-
-if medium_enabled:
-    allowed_risks.append("MEDIUM")
-
-if low_enabled:
-    allowed_risks.append("LOW")
+allowed_risks = [risk_mapping[selected_risk]]
 
 
 if not filtered.empty:
