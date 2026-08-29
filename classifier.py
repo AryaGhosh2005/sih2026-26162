@@ -15,7 +15,7 @@ Output:
 import os
 import pandas as pd
 from scipy.spatial import cKDTree
-from ml_classifier import predict_fire_type
+
 
 # =========================================================
 # CONFIGURATION
@@ -335,24 +335,6 @@ fires_df[
     .round(2)
 )
 
-def industry_match_confidence(distance):
-
-    if distance <= 10:
-        return 95
-
-    if distance <= 25:
-        return 80
-
-    if distance <= 50:
-        return 60
-
-    return 20
-
-
-fires_df["industry_match_confidence"] = (
-    fires_df["distance_to_industry"]
-    .apply(industry_match_confidence)
-)
 
 fires_df[
     "nearest_industry"
@@ -519,64 +501,18 @@ def classify(row):
     return "UNKNOWN"
 
 
-fires_df["classification"] = (
+fires_df[
+    "classification"
+] = (
+
     fires_df
-    .apply(classify, axis=1)
+
+    .apply(
+        classify,
+        axis=1
+    )
 )
 
-
-fires_df["ai_prediction"] = fires_df.apply(
-    lambda row: predict_fire_type(
-        row["brightness"],
-        row["confidence"],
-        row["frp"],
-        row["distance_to_industry"]
-    ),
-    axis=1
-)
-
-fires_df["ai_match"] = (
-    fires_df["classification"]
-    ==
-    fires_df["ai_prediction"]
-)
-
-ai_matches = (
-    fires_df["classification"]
-    ==
-    fires_df["ai_prediction"]
-).sum()
-
-ai_accuracy = (
-    ai_matches / len(fires_df)
-) * 100
-
-print("\n")
-print("=" * 60)
-print("AI AGREEMENT")
-print("=" * 60)
-print(f"Matches: {ai_matches}/{len(fires_df)}")
-print(f"Agreement: {ai_accuracy:.2f}%")
-
-print("\n")
-print("=" * 60)
-print("AI DISAGREEMENTS")
-print("=" * 60)
-
-print(
-    fires_df[
-        fires_df["ai_match"] == False
-    ][
-        [
-            "brightness",
-            "confidence",
-            "frp",
-            "distance_to_industry",
-            "classification",
-            "ai_prediction"
-        ]
-    ]
-)
 
 # =========================================================
 # RISK SCORE
@@ -1099,46 +1035,9 @@ else:
     )
 
 
-
-#new#
-######
-
-
-print("\n")
-print("=" * 60)
-print("INDUSTRIAL FIRE CANDIDATES")
-print("=" * 60)
-
-candidate = fires_df[
-    (fires_df["distance_to_industry"] <= 25) &
-    (fires_df["brightness"] >= 305) &
-    (fires_df["frp"] >= 2)
-]
-
-print("Candidate Count:", len(candidate))
-
-print(
-    candidate[
-        [
-            "brightness",
-            "confidence",
-            "frp",
-            "distance_to_industry",
-            "classification",
-            "nearest_industry"
-        ]
-    ]
-    .head(30)
-    .to_string(index=False)
-)
 # =========================================================
 # SAVE
 # =========================================================
-
-fires_df["id"] = [
-    f"FIRE_{i+1:05d}"
-    for i in range(len(fires_df))
-]
 
 fires_df.to_csv(
 
