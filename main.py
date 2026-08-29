@@ -9,10 +9,10 @@ from api.risk import router as risk_router
 
 
 app = FastAPI(
-    title="SIH 26162 Industrial Fire Detection API",
+    title="Industrial Fire Detection API",
     description=(
-        "AI-powered satellite thermal intelligence backend "
-        "for industrial fire detection, classification, "
+        "Satellite thermal intelligence platform for "
+        "industrial fire detection, classification, "
         "and risk assessment."
     ),
     version="1.0.0",
@@ -41,7 +41,7 @@ app.include_router(exports_router)
 @app.get("/")
 def root():
     return {
-        "system": "SIH 26162 Industrial Fire Detection System",
+        "system": "Industrial Fire Detection System",
         "status": "online",
         "version": "1.0.0",
         "docs": "/docs",
@@ -52,5 +52,5 @@ def root():
 def health_check():
     return {
         "status": "healthy",
-        "service": "industrial-fire-detection-backend",
+        "service": "thermal-intelligence-platform",
     }

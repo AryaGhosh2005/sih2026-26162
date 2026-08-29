@@ -16,14 +16,14 @@ def calculate_proximity_score(distance_km: Optional[float]) -> float:
 
     if distance_km <= 2:
         return 30
+
     if distance_km <= 5:
         return 22
-    if distance_km <= 8:
-        return 14
-    if distance_km <= 15:
-        return 7
-    return 2
 
+    if distance_km <= 10:
+        return 14
+
+    return 0
 
 def calculate_classification_bonus(classification: str) -> float:
     return 5 if classification.upper() == "INDUSTRIAL_FIRE" else 0

@@ -87,6 +87,12 @@ def create_fire_map(
         control_scale=True,
         tiles=None
     )
+folium.TileLayer(
+    tiles="CartoDB dark_matter",
+    name="Dark Theme",
+    overlay=False,
+    control=True
+).add_to(m)
 
     # -----------------------------------------------------
     # Satellite - DEFAULT
@@ -160,22 +166,22 @@ def create_fire_map(
             """
 
             folium.CircleMarker(
-                location=[
-                    row["latitude"],
-                    row["longitude"]
-                ],
-                radius=4,
-                color="#FFFFFF",
-                weight=1,
-                fill=True,
-                fill_color="#444444",
-                fill_opacity=0.75,
-                popup=folium.Popup(
-                    popup_html,
-                    max_width=240
-                ),
-                tooltip=name
-            ).add_to(facility_group)
+     location=[
+        row["latitude"],
+        row["longitude"]
+    ],
+    radius=3,
+    color="#9CA3AF",
+    weight=1,
+    fill=True,
+    fill_color="#6B7280",
+    fill_opacity=0.6,
+    popup=folium.Popup(
+        popup_html,
+        max_width=240
+    ),
+    tooltip=name
+).add_to(facility_group)
 
         facility_group.add_to(m)
 
@@ -266,83 +272,116 @@ def create_fire_map(
             # -------------------------------------------------
 
             popup_html = f"""
-            <div style="
-                font-family:'Segoe UI',sans-serif;
-                min-width:230px;
-                border-radius:8px;
-                overflow:hidden;
-            ">
+<div style="
+    width:260px;
+    background:#0f172a;
+    color:white;
+    border-radius:12px;
+    overflow:hidden;
+    font-family:Segoe UI,sans-serif;
+">
 
-                <div style="
-                    background:{color};
-                    color:white;
-                    padding:9px 12px;
-                    font-weight:700;
-                    font-size:13px;
-                ">
-                    {label.upper()}
-                </div>
+    <div style="
+        background:{color};
+        padding:10px;
+        font-size:14px;
+        font-weight:700;
+        text-align:center;
+    ">
+        FIRE RISK ANALYSIS
+    </div>
 
-                <div style="
-                    padding:11px 12px;
-                    background:#111827;
-                    color:#ffffff;
-                    font-size:11px;
-                    line-height:1.7;
-                ">
+    <div style="padding:12px;">
 
-                    <div>
-                        <span style="color:#9ca3af;">
-                            Facility
-                        </span>
-                        <br>
-                        <b>{facility}</b>
-                    </div>
+        <div style="
+            display:flex;
+            justify-content:space-between;
+            margin-bottom:6px;
+        ">
+            <span>Risk Score</span>
+            <b>{row.get("risk_score", 0)}</b>
+        </div>
 
-                    <hr style="
-                        border:none;
-                        border-top:1px solid #374151;
-                    ">
+        <div style="
+            display:flex;
+            justify-content:space-between;
+            margin-bottom:12px;
+        ">
+            <span>Risk Level</span>
+            <b>{row.get("risk_level", "LOW")}</b>
+        </div>
 
-                    <div>
-                        <span style="color:#9ca3af;">
-                            Brightness
-                        </span>
-                        &nbsp;
-                        <b>{brightness} K</b>
-                    </div>
+        <hr style="
+            border:none;
+            border-top:1px solid #334155;
+            margin:10px 0;
+        ">
 
-                    <div>
-                        <span style="color:#9ca3af;">
-                            Confidence
-                        </span>
-                        &nbsp;
-                        <b>{confidence}%</b>
-                    </div>
+        <div style="
+            display:flex;
+            justify-content:space-between;
+        ">
+            <span>Brightness</span>
+            <b>{brightness}</b>
+        </div>
 
-                    <div>
-                        <span style="color:#9ca3af;">
-                            Industry Distance
-                        </span>
-                        &nbsp;
-                        <b>{distance} km</b>
-                    </div>
+        <div style="
+            display:flex;
+            justify-content:space-between;
+        ">
+            <span>Confidence</span>
+            <b>{confidence}%</b>
+        </div>
 
-                    <div>
-                        <span style="color:#9ca3af;">
-                            Coordinates
-                        </span>
-                        <br>
-                        <b>
-                            {latitude:.4f},
-                            {longitude:.4f}
-                        </b>
-                    </div>
+        <div style="
+            display:flex;
+            justify-content:space-between;
+        ">
+            <span>Distance</span>
+            <b>{distance} km</b>
+        </div>
 
-                </div>
-            </div>
-            """
+        <div style="
+            display:flex;
+            justify-content:space-between;
+        ">
+            <span>Industry</span>
+            <b>{facility}</b>
+        </div>
 
+        <hr style="
+            border:none;
+            border-top:1px solid #334155;
+            margin:10px 0;
+        ">
+
+        <div style="
+            font-size:11px;
+            color:#cbd5e1;
+            margin-bottom:4px;
+        ">
+            Recommendation
+        </div>
+
+        <div style="
+            font-size:12px;
+            line-height:1.4;
+        ">
+            {
+                "Immediate emergency response required"
+                if row.get("risk_level") == "CRITICAL"
+                else "Prioritize field verification"
+                if row.get("risk_level") == "HIGH"
+                else "Monitor anomaly and verify"
+                if row.get("risk_level") == "MODERATE"
+                else "Continue monitoring"
+            }
+        </div>
+
+    </div>
+
+</div>
+"""
             # -------------------------------------------------
             # Pulsing hotspot
             # -------------------------------------------------
@@ -449,12 +488,13 @@ def create_fire_map(
         )
 
         plugins.HeatMap(
-            heat_points,
-            min_opacity=0.25,
-            radius=25,
-            blur=18,
-            max_zoom=8
-        ).add_to(heat_group)
+    heat_points,
+    min_opacity=0.35,
+    radius=18,
+    blur=15,
+    max_zoom=10
+
+).add_to(heat_group))
 
         heat_group.add_to(m)
 
