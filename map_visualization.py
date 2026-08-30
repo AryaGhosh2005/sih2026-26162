@@ -249,85 +249,67 @@ def create_fire_map(
 
             # -------------------------------------------------
             # Risk score + contribution breakdown
-            # (same formula as calculate_risk() in app.py, so
-            # this always agrees with the Event Intelligence panel)
+            # (read directly from backend-generated DataFrame)
             # -------------------------------------------------
 
-            try:
-                _brightness_val = float(brightness)
-            except Exception:
-                _brightness_val = 0
-
-            try:
-                _confidence_val = float(confidence)
-            except Exception:
-                _confidence_val = 0
-
-            try:
-                _distance_val = float(distance)
-            except Exception:
-                _distance_val = 999
-
-            brightness_pts = max(
-                0,
-                min(
-                    40,
-                    ((_brightness_val - 280) / 100) * 40
-                )
+            brightness_pts = row.get(
+                "brightness_score",
+                0
             )
 
-            confidence_pts = (
-                _confidence_val / 100
-            ) * 30
-
-            if _distance_val <= 2:
-                proximity_pts = 30
-            elif _distance_val <= 5:
-                proximity_pts = 22
-            elif _distance_val <= 8:
-                proximity_pts = 14
-            elif _distance_val <= 15:
-                proximity_pts = 7
-            else:
-                proximity_pts = 2
-
-            industrial_pts = (
-                5 if classification == "INDUSTRIAL_FIRE" else 0
+            confidence_pts = row.get(
+                "confidence_score",
+                0
             )
 
-            risk_score = max(
-                0,
-                min(
-                    100,
-                    int(round(
-                        brightness_pts
-                        + confidence_pts
-                        + proximity_pts
-                        + industrial_pts
-                    ))
-                )
+            proximity_pts = row.get(
+                "proximity_score",
+                0
             )
 
-            if risk_score >= 80:
-                risk_level = "CRITICAL"
+            industrial_pts = row.get(
+                "classification_bonus",
+                0
+            )
+
+            risk_score = row.get(
+                "risk_score",
+                0
+            )
+
+            risk_level = row.get(
+                "risk_level",
+                "LOW"
+            )
+
+            if risk_level == "CRITICAL":
                 risk_level_color = "#ef4444"
-                recommendation = "Immediate emergency response required"
-            elif risk_score >= 60:
-                risk_level = "HIGH"
-                risk_level_color = "#ff8a00"
-                recommendation = "Immediate verification recommended"
-            elif risk_score >= 40:
-                risk_level = "MEDIUM"
-                risk_level_color = "#f5bd24"
-                recommendation = "Schedule inspection and monitor closely"
-            else:
-                risk_level = "LOW"
-                risk_level_color = "#35cf66"
-                recommendation = "Routine monitoring sufficient"
 
-            brightness_pts_display = int(round(brightness_pts))
-            confidence_pts_display = int(round(confidence_pts))
-            proximity_pts_display = int(round(proximity_pts))
+            elif risk_level == "HIGH":
+                risk_level_color = "#ff8a00"
+
+            elif risk_level == "MODERATE":
+                risk_level_color = "#f5bd24"
+
+            else:
+                risk_level_color = "#35cf66"
+
+
+            # -------------------------------------------------
+            # Display helpers for popup
+            # -------------------------------------------------
+
+            brightness_pts_display = int(brightness_pts)
+            confidence_pts_display = int(confidence_pts)
+            proximity_pts_display = int(proximity_pts)
+
+            _recommendations = {
+                "CRITICAL": "Immediate emergency response required. Evacuate personnel and alert fire services.",
+                "HIGH": "Urgent inspection needed. Notify facility management and local authorities.",
+                "MODERATE": "Schedule on-site inspection within 24 hours. Increase monitoring frequency.",
+                "LOW": "Continue routine monitoring. Log for periodic review."
+            }
+            recommendation = _recommendations.get(risk_level, "Continue routine monitoring.")
 
 
             # -------------------------------------------------

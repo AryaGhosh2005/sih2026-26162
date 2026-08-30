@@ -74,9 +74,14 @@ def load_fires() -> pd.DataFrame:
     risk_scores = []
     risk_levels = []
 
+    brightness_scores = []
+    confidence_scores = []
+    proximity_scores = []
+    classification_bonuses = []
+
     for _, row in df.iterrows():
 
-        score, _ = calculate_risk(
+        score,breakdown = calculate_risk(
             brightness=_safe_float(row.get("brightness"), 0) or 0,
             confidence=_safe_float(row.get("confidence"), 0) or 0,
             distance_km=_safe_float(row.get("distance_to_industry")),
@@ -85,9 +90,31 @@ def load_fires() -> pd.DataFrame:
 
         risk_scores.append(score)
         risk_levels.append(get_risk_level(score))
+        brightness_scores.append(
+            breakdown["brightness_score"]
+        )
+
+        confidence_scores.append(
+            breakdown["confidence_score"]
+        )
+
+        proximity_scores.append(
+            breakdown["proximity_score"]
+        )
+
+        classification_bonuses.append(
+            breakdown["classification_bonus"]
+        )
 
     df["risk_score"] = risk_scores
     df["risk_level"] = risk_levels
+    df["brightness_score"] = brightness_scores
+
+    df["confidence_score"] = confidence_scores
+
+    df["proximity_score"] = proximity_scores
+
+    df["classification_bonus"] = classification_bonuses
 
     df["id"] = [
         f"FIRE-{index + 1:06d}"

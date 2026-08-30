@@ -21,21 +21,6 @@ def analytics_summary():
 def analytics_daily_trend():
     return {"data": daily_trend(load_fires())}
 
-#temp#
-@router.get("/summary")
-def analytics_summary():
-
-    df = load_fires()
-
-    print("\n=== DEBUG RISK LEVELS ===")
-    print(len(df))
-    print(df["risk_level"].value_counts(dropna=False))
-
-    return generate_summary(df)
-
-
-
-
 
 @router.get("/debug/top-scores")
 def top_scores():
