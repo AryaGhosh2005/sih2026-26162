@@ -1,5 +1,3 @@
-#fire.py#
-
 from datetime import datetime
 from typing import Optional
 
@@ -9,7 +7,10 @@ from pydantic import BaseModel, Field, ConfigDict
 class FireDetectionBase(BaseModel):
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
-    brightness: float = Field(..., gt=0)
+    # NOTE: was `gt=0`. classifier.py fills missing brightness with 0
+    # (fires_df["brightness"].fillna(0)), so a strict >0 constraint
+    # crashed response validation for any such fire. Relaxed to >=0.
+    brightness: float = Field(..., ge=0)
     confidence: float = Field(..., ge=0, le=100)
     satellite: str = Field(..., min_length=1, max_length=50)
     classification: str = Field(..., min_length=1, max_length=50)
@@ -25,7 +26,6 @@ class FireDetectionCreate(FireDetectionBase):
 
 class FireDetection(FireDetectionBase):
     model_config = ConfigDict(from_attributes=True)
-
     id: str
     classification_label: Optional[str] = None
     risk_score: int = Field(..., ge=0, le=100)
@@ -41,6 +41,7 @@ class FireDetectionSummary(BaseModel):
     brightness: float
     confidence: float
     satellite: str
+    acquisition_date: Optional[datetime] = None
     risk_score: int
     risk_level: str
     distance_to_industry: Optional[float]

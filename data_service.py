@@ -115,7 +115,6 @@ def load_fires() -> pd.DataFrame:
     print("====================\n")
 
     return df
-
 def load_industries() -> pd.DataFrame:
     if not INDUSTRIES_FILE.exists():
         raise FileNotFoundError(
@@ -129,19 +128,7 @@ def load_industries() -> pd.DataFrame:
         for index in range(len(df))
     ]
 
-    print(
-    df[
-        ["risk_score",
-         "classification",
-         "brightness",
-         "confidence",
-         "distance_to_industry"]
-    ]
-    .sort_values("risk_score", ascending=False)
-    .head(20)
-    )
     return df
-
 
 def get_fire_by_id(fire_id: str) -> Optional[pd.Series]:
     df = load_fires()

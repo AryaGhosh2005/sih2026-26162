@@ -1,5 +1,3 @@
-#risk.py#
-
 from pydantic import BaseModel, Field
 
 
@@ -7,7 +5,7 @@ class RiskBreakdown(BaseModel):
     brightness_score: float = Field(..., ge=0, le=40)
     confidence_score: float = Field(..., ge=0, le=30)
     proximity_score: float = Field(..., ge=0, le=30)
-    classification_bonus: float = Field(..., ge=0, le=5)
+    classification_bonus: float = Field(..., ge=0, le=20)
 
 
 class RiskResponse(BaseModel):

@@ -1,11 +1,10 @@
-#exports.py#
 import json
 
+import pandas as pd
 from fastapi import APIRouter
 from fastapi.responses import Response
 
 from data_service import load_fires
-
 
 router = APIRouter(
     prefix="/api/v1/export",
@@ -16,7 +15,6 @@ router = APIRouter(
 @router.get("/csv")
 def export_csv():
     csv_data = load_fires().to_csv(index=False)
-
     return Response(
         content=csv_data,
         media_type="text/csv",
@@ -32,20 +30,28 @@ def export_csv():
 def export_geojson():
     df = load_fires()
     features = []
-
     for _, row in df.iterrows():
         properties = {}
-
         for column in df.columns:
             value = row[column]
+            # FIX: check for NaN/NaT first. Previously a missing
+            # numeric value fell through both hasattr checks below
+            # and was serialized as a literal `NaN` token (invalid
+            # JSON) instead of `null`.
+            try:
+                is_missing = value is None or (
+                    not isinstance(value, str) and pd.isna(value)
+                )
+            except (TypeError, ValueError):
+                is_missing = False
 
-            if hasattr(value, "isoformat"):
+            if is_missing:
+                value = None
+            elif hasattr(value, "isoformat"):
                 value = value.isoformat()
             elif hasattr(value, "item"):
                 value = value.item()
-
             properties[column] = value
-
         features.append({
             "type": "Feature",
             "properties": properties,
@@ -57,12 +63,10 @@ def export_geojson():
                 ],
             },
         })
-
     geojson = {
         "type": "FeatureCollection",
         "features": features,
     }
-
     return Response(
         content=json.dumps(
             geojson,

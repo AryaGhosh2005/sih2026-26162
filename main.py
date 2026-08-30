@@ -57,3 +57,4 @@ def health_check():
         "status": "healthy",
         "service": "industrial-fire-detection-backend",
     }
+
