@@ -37,7 +37,73 @@ st.markdown("""
 
 #MainMenu { visibility: hidden; }
 footer { visibility: hidden; }
-header { visibility: hidden; }
+
+/* ---------------- NATIVE SIDEBAR TOGGLE ----------------
+   Keep Streamlit's built-in sidebar control visible and
+   functional. It automatically switches between << and >>
+   when the Control Panel is expanded/collapsed.
+*/
+header {
+    visibility: visible !important;
+    background: transparent !important;
+}
+
+/* Expanded-state collapse button */
+button[data-testid="stSidebarCollapseButton"] {
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 30px !important;
+    height: 30px !important;
+    background: #111a27 !important;
+    border: 1px solid #283446 !important;
+    border-radius: 8px !important;
+    color: #dce4ee !important;
+    z-index: 999999 !important;
+    transition: all 0.2s ease !important;
+}
+
+button[data-testid="stSidebarCollapseButton"]:hover {
+    background: #172335 !important;
+    border-color: #24aef5 !important;
+    color: #ffffff !important;
+}
+
+/* Collapsed-state reopen control */
+[data-testid="stSidebarCollapsedControl"] {
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 999999 !important;
+}
+
+[data-testid="stSidebarCollapsedControl"] button {
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 30px !important;
+    height: 30px !important;
+    background: #111a27 !important;
+    border: 1px solid #283446 !important;
+    border-radius: 8px !important;
+    color: #dce4ee !important;
+    transition: all 0.2s ease !important;
+}
+
+[data-testid="stSidebarCollapsedControl"] button:hover {
+    background: #172335 !important;
+    border-color: #24aef5 !important;
+    color: #ffffff !important;
+}
+
+button[data-testid="stSidebarCollapseButton"] svg,
+[data-testid="stSidebarCollapsedControl"] button svg {
+    color: #dce4ee !important;
+    fill: #dce4ee !important;
+}
 
 html, body, [class*="css"] {
     font-family: -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
@@ -1557,8 +1623,8 @@ except Exception as error:
 
 current_time = datetime.now()
 
-h1, h2, h3, h4, h5, h6 = st.columns(
-    [2.6, 0.8, 0.8, 0.8, 1.1, 1.1]
+h1, h2, h3, h4, h5 = st.columns(
+    [2.6, 1.6, 0.3, 1.1, 1.1]
 )
 
 with h1:
@@ -1574,15 +1640,20 @@ with h1:
     )
 
 with h2:
-    st.markdown('<div class="nav-active">Overview</div>', unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="nav-active">Overview</div>',
+        unsafe_allow_html=True
+    )
 
 with h3:
-    st.markdown('<div class="nav-item">Events</div>', unsafe_allow_html=True)
+
+    st.markdown(
+        '<div style="height:1px;"></div>',
+        unsafe_allow_html=True
+    )
 
 with h4:
-    st.markdown('<div class="nav-item">Analysis</div>', unsafe_allow_html=True)
-
-with h5:
 
     st.markdown(
         '<div class="status-box">'
@@ -1592,16 +1663,17 @@ with h5:
         unsafe_allow_html=True
     )
 
-with h6:
+with h5:
 
     st.markdown(
         f'<div class="status-box">'
         f'<div class="clock-time">{current_time.strftime("%H:%M:%S")}</div>'
-        f'<div class="clock-date">{current_time.strftime("%d %b %Y")} &nbsp;·&nbsp; Last updated</div>'
+        f'<div class="clock-date">'
+        f'{current_time.strftime("%d %b %Y")} &nbsp;·&nbsp; Last updated'
+        f'</div>'
         f'</div>',
         unsafe_allow_html=True
     )
-
 
 # ============================================================
 # SIDEBAR FILTERS
