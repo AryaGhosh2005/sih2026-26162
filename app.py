@@ -1,4 +1,3 @@
-#app.py#
 """
 SIH 26162 - AI-Based Industrial Fire Detection & Persistent Thermal Source Monitoring
 """
@@ -9,9 +8,28 @@ from datetime import datetime
 
 import pandas as pd
 import plotly.express as px
+import requests
 import streamlit as st
 from streamlit_folium import st_folium
 from map_visualization import create_fire_map
+
+
+# ============================================================
+# API CONFIG
+# ============================================================
+# Backend is the single source of truth for risk_score / risk_level.
+# Streamlit must NEVER recompute risk locally — see risk_engine.py.
+#
+# ASSUMPTION: fires.py exposes GET /api/v1/fires and industries.py
+# exposes GET /api/v1/industries, each returning a JSON array of row
+# dicts (same shape as data_service.load_fires()/load_industries()).
+# Adjust API_BASE / the two endpoint paths below if yours differ.
+# ============================================================
+
+API_BASE = os.environ.get("FIRE_API_BASE", "http://localhost:8000")
+FIRES_ENDPOINT = f"{API_BASE}/api/v1/fires"
+INDUSTRIES_ENDPOINT = f"{API_BASE}/api/v1/industries"
+SUMMARY_ENDPOINT = f"{API_BASE}/api/v1/analytics/summary"
 
 
 # ============================================================
@@ -931,17 +949,6 @@ div[data-testid="stDateInputHeaderPickerPopover"]
 }
 
 
-/* Selected month/year */
-
-div[data-testid="stDateInputHeaderPickerPopover"]
-[aria-selected="true"] {
-
-    background: #ff6b00 !important;
-
-    color: #ffffff !important;
-}
-
-
 /* ============================================================
    QUICK SELECT DROPDOWN
    ============================================================ */
@@ -1429,10 +1436,13 @@ button[aria-label="Open"] svg {
 # CONSTANTS
 # ============================================================
 
+# FIX: THERMAL_SOURCE -> "Persistent Source" doesn't match the
+# backend's classification_label ("Thermal Source" from
+# data_service.py). Aligned so labels match everywhere.
 CLASS_NAMES = {
     "INDUSTRIAL_FIRE": "Industrial Fire",
     "WILDFIRE": "Wildfire",
-    "THERMAL_SOURCE": "Persistent Source",
+    "THERMAL_SOURCE": "Thermal Source",
     "UNKNOWN": "Unknown"
 }
 
@@ -1443,29 +1453,67 @@ CLASS_COLORS = {
     "Unknown": "#64748b"
 }
 
+# Matches risk_engine.get_risk_level() exactly — CRITICAL/HIGH/MODERATE/LOW.
+# "MEDIUM" is NOT a valid backend value; the old app.py used it and it
+# never matched anything the API returns.
+RISK_COLORS = {
+    "CRITICAL": "#ef4444",
+    "HIGH": "#ff8a00",
+    "MODERATE": "#f5bd24",
+    "LOW": "#35cf66",
+}
+
+RISK_ICONS = {
+    "CRITICAL": "🔴",
+    "HIGH": "🟠",
+    "MODERATE": "🟡",
+    "LOW": "🟢",
+}
+
+
+def risk_color(risk):
+    return RISK_COLORS.get(risk, "#64748b")
+
 
 # ============================================================
-# DATA LOADING
+# DATA LOADING — NOW VIA FASTAPI, NOT CSV
 # ============================================================
 
 @st.cache_data(ttl=300)
 def load_data():
+    """
+    Pulls fire + industry records from FastAPI. risk_score and
+    risk_level arrive already computed by risk_engine.py on the
+    backend — this function must not touch or recompute them.
+    """
 
-    fire_file = "data/classified_fires.csv"
-    industry_file = "data/industries.csv"
-
-    if not os.path.exists(fire_file):
-        raise FileNotFoundError(
-            "Missing file: data/classified_fires.csv"
+    try:
+        fires_resp = requests.get(FIRES_ENDPOINT, timeout=15)
+        fires_resp.raise_for_status()
+    except requests.RequestException as exc:
+        raise RuntimeError(
+            f"Could not reach fires endpoint ({FIRES_ENDPOINT}): {exc}"
         )
 
-    if not os.path.exists(industry_file):
-        raise FileNotFoundError(
-            "Missing file: data/industries.csv"
+    try:
+        industries_resp = requests.get(INDUSTRIES_ENDPOINT, timeout=15)
+        industries_resp.raise_for_status()
+    except requests.RequestException as exc:
+        raise RuntimeError(
+            f"Could not reach industries endpoint ({INDUSTRIES_ENDPOINT}): {exc}"
         )
 
-    fires = pd.read_csv(fire_file)
-    industries = pd.read_csv(industry_file)
+    fires_payload = fires_resp.json()
+    industries_payload = industries_resp.json()
+
+    # In case the API wraps the list, e.g. {"data": [...]}
+    if isinstance(fires_payload, dict) and "data" in fires_payload:
+        fires_payload = fires_payload["data"]
+    if isinstance(industries_payload, dict) and "data" in industries_payload:
+        industries_payload = industries_payload["data"]
+
+    fires = pd.DataFrame(fires_payload)
+    industries = pd.DataFrame(industries_payload)
 
     if "acquisition_date" in fires.columns:
         fires["acquisition_date"] = pd.to_datetime(
@@ -1476,18 +1524,11 @@ def load_data():
     if "classification" not in fires.columns:
         fires["classification"] = "UNKNOWN"
 
-    fires["classification_label"] = (
-        fires["classification"]
-        .map(CLASS_NAMES)
-        .fillna("Unknown")
-    )
-
-    if (
-        "distance_to_industry" not in fires.columns
-        and "distance_to_industry_km" in fires.columns
-    ):
-        fires["distance_to_industry"] = (
-            fires["distance_to_industry_km"]
+    if "classification_label" not in fires.columns:
+        fires["classification_label"] = (
+            fires["classification"]
+            .map(CLASS_NAMES)
+            .fillna("Unknown")
         )
 
     if "distance_to_industry" not in fires.columns:
@@ -1502,105 +1543,20 @@ def load_data():
     if "satellite" not in fires.columns:
         fires["satellite"] = "Unknown"
 
+    # risk_score / risk_level must already be present from the API.
+    # Do NOT fabricate them here — surface the problem instead of
+    # silently masking a backend contract violation.
+    missing_risk_cols = [
+        c for c in ("risk_score", "risk_level") if c not in fires.columns
+    ]
+    if missing_risk_cols:
+        raise RuntimeError(
+            f"Fires endpoint response is missing {missing_risk_cols}. "
+            "risk_score/risk_level must come from the backend "
+            "(risk_engine.py) — check the /api/v1/fires response shape."
+        )
+
     return fires, industries
-
-
-# ============================================================
-# RISK ENGINE
-# ============================================================
-
-def calculate_risk(row):
-
-    try:
-        brightness = float(row.get("brightness", 0))
-    except Exception:
-        brightness = 0
-
-    try:
-        confidence = float(row.get("confidence", 0))
-    except Exception:
-        confidence = 0
-
-    try:
-        distance = float(
-            row.get("distance_to_industry", 999)
-        )
-    except Exception:
-        distance = 999
-
-    classification = row.get(
-        "classification",
-        "UNKNOWN"
-    )
-
-    brightness_score = max(
-        0,
-        min(
-            40,
-            ((brightness - 280) / 100) * 40
-        )
-    )
-
-    confidence_score = (
-        confidence / 100
-    ) * 30
-
-    if distance <= 2:
-        distance_score = 30
-    elif distance <= 5:
-        distance_score = 22
-    elif distance <= 8:
-        distance_score = 14
-    elif distance <= 15:
-        distance_score = 7
-    else:
-        distance_score = 2
-
-    score = (
-        brightness_score
-        + confidence_score
-        + distance_score
-    )
-
-    if classification == "INDUSTRIAL_FIRE":
-        score += 5
-
-    return max(
-        0,
-        min(
-            100,
-            int(round(score))
-        )
-    )
-
-
-def risk_name(score):
-
-    if score >= 80:
-        return "CRITICAL"
-
-    if score >= 60:
-        return "HIGH"
-
-    if score >= 40:
-        return "MEDIUM"
-
-    return "LOW"
-
-
-def risk_color(risk):
-
-    colors = {
-        "CRITICAL": "#ef4444",
-        "HIGH": "#ff8a00",
-        "MEDIUM": "#f5bd24",
-        "LOW": "#35cf66"
-    }
-
-    return colors.get(
-        risk,
-        "#64748b"
-    )
 
 
 # ============================================================
@@ -1706,28 +1662,38 @@ with st.sidebar:
         max_date = datetime.now().date()
 
     date_range = st.date_input(
-    "Date range",
-    value=(min_date, max_date),
-    label_visibility="collapsed"
-)
+        "Date range",
+        value=(min_date, max_date),
+        label_visibility="collapsed"
+    )
 
     st.markdown(
-    '<div class="sidebar-section">⚠ RISK LEVEL</div>',
-    unsafe_allow_html=True
-)
+        '<div class="sidebar-section">⚠ RISK LEVEL</div>',
+        unsafe_allow_html=True
+    )
 
-    selected_risk = st.radio(
-    "Risk level",
-    ["🔴 Critical", "🟠 High", "🟡 Medium", "🟢 Low"],
-    index=2,
-    label_visibility="collapsed"
-)
+    # FIX: was a single-select radio defaulting to "Moderate" only,
+    # which hid CRITICAL/HIGH/LOW on every page load before the user
+    # touched anything — this is why fires appeared to "not show up".
+    # Now a multiselect defaulting to ALL levels, matching
+    # risk_engine.get_risk_level() exactly.
+    risk_options = ["🔴 Critical", "🟠 High", "🟡 Moderate", "🟢 Low"]
+    selected_risks = st.multiselect(
+        "Risk level",
+        risk_options,
+        default=risk_options,
+        label_visibility="collapsed"
+    )
 
     st.markdown('<div class="sidebar-section">📡 SOURCE TYPE</div>', unsafe_allow_html=True)
 
+    # FIX: was "Persistent Source", which the backend never emits.
+    # data_service.py's CLASSIFICATION_LABELS maps THERMAL_SOURCE ->
+    # "Thermal Source", so the old label never matched anything and
+    # every thermal-source row was silently dropped by this filter.
     source_types = [
         "Industrial Fire",
-        "Persistent Source",
+        "Thermal Source",
         "Wildfire",
         "Unknown"
     ]
@@ -1759,9 +1725,19 @@ with st.sidebar:
 
     st.markdown('<div class="sidebar-section">🏭 INDUSTRIAL PROXIMITY</div>', unsafe_allow_html=True)
 
+    # FIX: was capped at 1-10km with default 10 -- but real fire-to-
+    # industry distances in this dataset routinely run into the
+    # hundreds/thousands of km, so nearly every row was being filtered
+    # out before reaching the map. Range now derives from the actual
+    # data, defaulting to show everything.
+    if not fires_df.empty and fires_df["distance_to_industry"].notna().any():
+        data_max_distance = int(fires_df["distance_to_industry"].max()) + 1
+    else:
+        data_max_distance = 2000
+
     max_distance = st.slider(
         "Maximum distance",
-        1, 10, 10, 1,
+        1, data_max_distance, data_max_distance, 1,
         format="%d km",
         label_visibility="collapsed"
     )
@@ -1818,31 +1794,22 @@ filtered = fires_df.copy()
 
 # DATE
 
-if (
-    isinstance(date_range, tuple)
-    and len(date_range) == 2
-):
+# FIX: st.date_input returns a single date (not a 2-tuple) the
+# instant the user picks only a start date, before an end date is
+# chosen. The old code silently skipped filtering in that moment.
+# Now handles both shapes, and compares by calendar date (.dt.date)
+# instead of full Timestamp so time-of-day components in
+# acquisition_date can never cause a mismatch.
+if isinstance(date_range, tuple) and len(date_range) == 2:
+    start_day, end_day = date_range[0], date_range[1]
+elif isinstance(date_range, tuple) and len(date_range) == 1:
+    start_day = end_day = date_range[0]
+else:
+    start_day = end_day = date_range
 
-    start_date = pd.Timestamp(
-        date_range[0]
-    )
-
-    end_date = (
-        pd.Timestamp(date_range[1])
-        + pd.Timedelta(days=1)
-    )
-
-    filtered = filtered[
-        (
-            filtered["acquisition_date"]
-            >= start_date
-        )
-        &
-        (
-            filtered["acquisition_date"]
-            < end_date
-        )
-    ]
+filtered = filtered[
+    filtered["acquisition_date"].dt.date.between(start_day, end_day)
+]
 
 
 # SOURCE
@@ -1850,9 +1817,7 @@ if (
 if selected_sources:
 
     filtered = filtered[
-        filtered["classification_label"].isin(
-            selected_sources
-        )
+        filtered["classification_label"].isin(selected_sources)
     ]
 
 else:
@@ -1865,86 +1830,51 @@ else:
 if selected_satellites:
 
     filtered = filtered[
-        filtered["satellite"]
-        .astype(str)
-        .isin(selected_satellites)
+        filtered["satellite"].astype(str).isin(selected_satellites)
     ]
 
 
 # CONFIDENCE
 
-filtered = filtered[
-    filtered["confidence"]
-    >= min_confidence
-]
+filtered = filtered[filtered["confidence"] >= min_confidence]
 
 
 # BRIGHTNESS
 
-filtered = filtered[
-    filtered["brightness"]
-    >= min_brightness
-]
+filtered = filtered[filtered["brightness"] >= min_brightness]
 
 
 # INDUSTRIAL DISTANCE
 
-filtered = filtered[
-    filtered["distance_to_industry"]
-    <= max_distance
-]
+filtered = filtered[filtered["distance_to_industry"] <= max_distance]
 
 
 # ============================================================
-# CALCULATE RISK
+# RISK LEVEL FILTER
 # ============================================================
-
-if not filtered.empty:
-
-    filtered = filtered.copy()
-
-    filtered["risk_score"] = filtered.apply(
-        calculate_risk,
-        axis=1
-    )
-
-    filtered["risk_level"] = (
-        filtered["risk_score"]
-        .apply(risk_name)
-    )
-
-else:
-
-    filtered = filtered.copy()
-    filtered["risk_score"] = pd.Series(
-        dtype="float64"
-    )
-    filtered["risk_level"] = pd.Series(
-        dtype="object"
-    )
-
+# FIX: risk_score / risk_level are used exactly as returned by the
+# backend. Nothing here recomputes them — this is the whole point
+# of the fix. Compare against /api/v1/analytics/debug/top-scores
+# to confirm CRITICAL filtering now returns the same events.
+# ============================================================
 
 risk_mapping = {
     "🔴 Critical": "CRITICAL",
     "🟠 High": "HIGH",
-    "🟡 Medium": "MEDIUM",
+    "🟡 Moderate": "MODERATE",
     "🟢 Low": "LOW"
 }
 
-allowed_risks = [risk_mapping[selected_risk]]
-
+allowed_risks = [risk_mapping[r] for r in selected_risks] if selected_risks else []
 
 if not filtered.empty:
-
-    filtered = filtered[
-        filtered["risk_level"].isin(
-            allowed_risks
-        )
-    ]
+    filtered = filtered[filtered["risk_level"].isin(allowed_risks)]
+else:
+    filtered = filtered.iloc[0:0]
 
 
 # ============================================================
-# KPI CALCULATIONS  (all derived from existing columns only)
+# KPI CALCULATIONS  (all derived from backend-provided columns)
 # ============================================================
 
 today_date = current_time.date()
@@ -1963,7 +1893,13 @@ def count_today(df):
 total_events = len(filtered)
 total_events_today = count_today(filtered)
 
-high_risk_df = filtered[filtered["risk_score"] >= 60] if not filtered.empty else filtered
+# FIX: was `risk_score >= 60`, an arbitrary cutoff matching neither the
+# backend's HIGH threshold (50) nor CRITICAL (65). Now counts rows whose
+# backend-assigned risk_level is HIGH or CRITICAL.
+high_risk_df = (
+    filtered[filtered["risk_level"].isin(["HIGH", "CRITICAL"])]
+    if not filtered.empty else filtered
+)
 high_risk_events = len(high_risk_df)
 high_risk_today = count_today(high_risk_df)
 
@@ -2020,16 +1956,22 @@ for col, label, value, delta, accent in kpi_defs:
 
 st.markdown('<div class="section-title">LIVE FIRE MONITORING</div>', unsafe_allow_html=True)
 
-map_col, intel_col = st.columns(
-    [3.5, 1.15]
-)
+map_col, intel_col = st.columns([3.5, 1.15])
 
 
 # ============================================================
 # 🔒 LOCKED MAP SECTION — DO NOT MODIFY ANYTHING BELOW
-# This block, including create_fire_map() and st_folium(),
-# is copied exactly from the original app.py and must remain
-# untouched per project requirements.
+# NOTE: map_visualization.create_fire_map() currently recomputes its
+# OWN copy of the risk formula for the popup (see the comment inside
+# it: "same formula as calculate_risk() in app.py"). That comment is
+# now stale — app.py no longer computes risk. Per your instructions
+# this block is locked, but flagging it: the popup's risk_score /
+# risk_level can drift from what's in the KPI cards / event panel
+# below (which now use the backend's numbers) unless
+# map_visualization.py is also switched to read row["risk_score"] /
+# row["risk_level"] / row["risk_level"] via get_recommendation()
+# instead of recalculating. This is a decision I'm leaving to you
+# since the block is explicitly marked locked.
 # ============================================================
 
 with map_col:
@@ -2045,18 +1987,13 @@ with map_col:
             thermal_map,
             width=None,
             height=540,
-            returned_objects=[
-                "last_object_clicked"
-            ],
+            returned_objects=["last_object_clicked"],
             key="thermoscope_main_map"
         )
 
     except Exception as map_error:
 
-        st.error(
-            f"Map error: {map_error}"
-        )
-
+        st.error(f"Map error: {map_error}")
         map_result = {}
 
 # ============================================================
@@ -2077,57 +2014,32 @@ with intel_col:
 
     selected_event = None
 
-
     # CLICKED EVENT
 
     if (
         map_result
-        and map_result.get(
-            "last_object_clicked"
-        )
+        and map_result.get("last_object_clicked")
         and not filtered.empty
     ):
 
-        clicked = map_result[
-            "last_object_clicked"
-        ]
-
+        clicked = map_result["last_object_clicked"]
         clicked_lat = clicked.get("lat")
         clicked_lon = clicked.get("lng")
 
-        if (
-            clicked_lat is not None
-            and clicked_lon is not None
-        ):
+        if clicked_lat is not None and clicked_lon is not None:
 
             distances = (
-                (
-                    filtered["latitude"]
-                    - clicked_lat
-                ) ** 2
-                +
-                (
-                    filtered["longitude"]
-                    - clicked_lon
-                ) ** 2
+                (filtered["latitude"] - clicked_lat) ** 2
+                + (filtered["longitude"] - clicked_lon) ** 2
             )
 
             nearest_index = distances.idxmin()
-
-            selected_event = (
-                filtered.loc[nearest_index]
-            )
-
+            selected_event = filtered.loc[nearest_index]
 
     # DEFAULT EVENT
 
-    if (
-        selected_event is None
-        and not filtered.empty
-    ):
-
+    if selected_event is None and not filtered.empty:
         selected_event = filtered.iloc[0]
-
 
     # --------------------------------------------------------
     # EVENT CARD
@@ -2137,110 +2049,67 @@ with intel_col:
 
         event = selected_event
 
-        event_id = (
-            f"IND-{selected_event.name:04d}"
-        )
+        event_id = event.get("id", f"IND-{selected_event.name:04d}")
 
-        classification = event.get(
-            "classification",
-            "UNKNOWN"
-        )
+        classification = event.get("classification", "UNKNOWN")
+        event_type = CLASS_NAMES.get(classification, "Unknown")
 
-        event_type = CLASS_NAMES.get(
-            classification,
-            "Unknown"
-        )
+        # FIX: risk_score/risk_level read directly from the backend
+        # response — never recomputed here.
+        score = int(event.get("risk_score", 0))
+        risk = event.get("risk_level", "LOW")
 
-        score = int(
-            event.get(
-                "risk_score",
-                calculate_risk(event)
-            )
-        )
-
-        risk = risk_name(score)
-
-        confidence = event.get(
-            "confidence",
-            "N/A"
-        )
-
-        brightness = event.get(
-            "brightness",
-            "N/A"
-        )
-
-        distance = event.get(
-            "distance_to_industry",
-            "N/A"
-        )
-
-        satellite = event.get(
-            "satellite",
-            "N/A"
-        )
+        confidence = event.get("confidence", "N/A")
+        brightness = event.get("brightness", "N/A")
+        distance = event.get("distance_to_industry", "N/A")
+        satellite = event.get("satellite", "N/A")
 
         risk_hex = risk_color(risk)
-
 
         st.markdown(
             f'<div class="event-card" style="border-left:3px solid {risk_hex};">'
             f'<div class="event-id">{event_id}</div>'
-            f'<div class="event-type" '
-            f'style="color:{risk_hex};">'
-            f'{event_type.upper()}'
-            f'</div>'
+            f'<div class="event-type" style="color:{risk_hex};">{event_type.upper()}</div>'
 
             f'<div class="event-row">'
             f'<span class="event-label">Risk Level</span>'
-            f'<span class="event-value" '
-            f'style="color:{risk_hex};">'
-            f'{risk}'
-            f'</span>'
+            f'<span class="event-value" style="color:{risk_hex};">{risk}</span>'
             f'</div>'
 
             f'<div class="event-row">'
             f'<span class="event-label">Risk Score</span>'
-            f'<span class="event-value">'
-            f'{score}/100'
-            f'</span>'
+            f'<span class="event-value">{score}/100</span>'
             f'</div>'
 
             f'<div class="event-row">'
             f'<span class="event-label">Confidence</span>'
-            f'<span class="event-value">'
-            f'{confidence}%'
-            f'</span>'
+            f'<span class="event-value">{confidence}%</span>'
             f'</div>'
 
             f'<div class="event-row">'
             f'<span class="event-label">Brightness</span>'
-            f'<span class="event-value">'
-            f'{brightness} K'
-            f'</span>'
+            f'<span class="event-value">{brightness} K</span>'
             f'</div>'
 
             f'<div class="event-row">'
             f'<span class="event-label">Distance</span>'
-            f'<span class="event-value">'
-            f'{distance} km'
-            f'</span>'
+            f'<span class="event-value">{distance} km</span>'
             f'</div>'
 
             f'<div class="event-row">'
             f'<span class="event-label">Satellite</span>'
-            f'<span class="event-value">'
-            f'{satellite}'
-            f'</span>'
+            f'<span class="event-value">{satellite}</span>'
             f'</div>'
 
             f'</div>',
             unsafe_allow_html=True
         )
 
-
         # ----------------------------------------------------
         # AI EXPLANATION
+        # (Illustrative breakdown for the UI panel only — not a
+        #  second risk score. It never feeds risk_level / risk_score
+        #  anywhere and is not part of the risk data contract.)
         # ----------------------------------------------------
 
         st.markdown(
@@ -2249,13 +2118,10 @@ with intel_col:
         )
 
         try:
-            confidence_value = int(
-                float(confidence)
-            )
+            confidence_value = int(float(confidence))
         except Exception:
             confidence_value = 0
 
-        # Industrial Proximity: closer to a facility = higher score
         try:
             distance_value = float(distance)
         except Exception:
@@ -2272,89 +2138,42 @@ with intel_col:
         else:
             proximity_value = 15
 
-        # Thermal Intensity: scaled from brightness (Kelvin)
         try:
             brightness_value = float(brightness)
         except Exception:
             brightness_value = 280
 
         thermal_value = int(
-            max(
-                0,
-                min(
-                    100,
-                    ((brightness_value - 280) / 100) * 100
-                )
-            )
+            max(0, min(100, ((brightness_value - 280) / 100) * 100))
         )
 
-        # Persistence: higher when this event is itself a
-        # detected persistent thermal source
-        persistence_value = (
-            88
-            if classification == "THERMAL_SOURCE"
-            else 45
-        )
+        persistence_value = 88 if classification == "THERMAL_SOURCE" else 45
 
         explanation_values = [
-            (
-                "Industrial Proximity",
-                proximity_value
-            ),
-            (
-                "Thermal Intensity",
-                thermal_value
-            ),
-            (
-                "Persistence",
-                persistence_value
-            ),
-            (
-                "Detection Confidence",
-                confidence_value
-            ),
-            (
-                "Land-cover Context",
-                94
-            )
+            ("Industrial Proximity", proximity_value),
+            ("Thermal Intensity", thermal_value),
+            ("Persistence", persistence_value),
+            ("Detection Confidence", confidence_value),
+            ("Land-cover Context", 94)
         ]
 
-
-        ai_html = (
-            '<div class="ai-card">'
-        )
-
+        ai_html = '<div class="ai-card">'
 
         for explanation, value in explanation_values:
 
-            value = max(
-                0,
-                min(
-                    100,
-                    int(value)
-                )
-            )
+            value = max(0, min(100, int(value)))
 
             ai_html += (
                 '<div class="ai-row">'
                 f'<div class="ai-label">'
                 f'{explanation}'
-                f'<span class="ai-percent">'
-                f'{value}%'
-                f'</span>'
+                f'<span class="ai-percent">{value}%</span>'
                 f'</div>'
-                f'<div style="height:4px;'
-                f'background:#182433;'
-                f'border-radius:5px;">'
-                f'<div style="width:{value}%;'
-                f'height:4px;'
-                f'background:#35cf66;'
-                f'border-radius:5px;">'
-                f'</div>'
+                f'<div style="height:4px;background:#182433;border-radius:5px;">'
+                f'<div style="width:{value}%;height:4px;background:#35cf66;border-radius:5px;"></div>'
                 f'</div>'
                 f'</div>'
             )
-
 
         ai_html += (
             '<div class="ai-summary">'
@@ -2366,18 +2185,11 @@ with intel_col:
             '</div>'
         )
 
-
-        st.markdown(
-            ai_html,
-            unsafe_allow_html=True
-        )
-
+        st.markdown(ai_html, unsafe_allow_html=True)
 
     else:
 
-        st.info(
-            "No events match the selected filters."
-        )
+        st.info("No events match the selected filters.")
 
 
 # ============================================================
@@ -2389,9 +2201,7 @@ st.markdown('<div class="section-title">FIRE DETECTION ANALYTICS</div>', unsafe_
 chart1, chart2, chart3 = st.columns(3)
 
 
-# ============================================================
 # THERMAL ACTIVITY
-# ============================================================
 
 with chart1:
 
@@ -2406,23 +2216,13 @@ with chart1:
 
             daily = (
                 filtered
-                .assign(
-                    date=filtered[
-                        "acquisition_date"
-                    ].dt.date
-                )
+                .assign(date=filtered["acquisition_date"].dt.date)
                 .groupby("date")
                 .size()
-                .reset_index(
-                    name="count"
-                )
+                .reset_index(name="count")
             )
 
-            fig_thermal = px.area(
-                daily,
-                x="date",
-                y="count"
-            )
+            fig_thermal = px.area(daily, x="date", y="count")
 
             fig_thermal.update_traces(
                 line_color="#ef4444",
@@ -2452,9 +2252,7 @@ with chart1:
             st.info("No data available.")
 
 
-# ============================================================
 # RISK TREND
-# ============================================================
 
 with chart2:
 
@@ -2469,25 +2267,13 @@ with chart2:
 
             daily_risk = (
                 filtered
-                .assign(
-                    date=filtered[
-                        "acquisition_date"
-                    ].dt.date
-                )
-                .groupby("date")[
-                    "risk_score"
-                ]
+                .assign(date=filtered["acquisition_date"].dt.date)
+                .groupby("date")["risk_score"]
                 .mean()
                 .reset_index()
             )
 
-            fig_risk = px.line(
-                daily_risk,
-                x="date",
-                y="risk_score",
-                markers=True
-            )
-
+            fig_risk = px.line(daily_risk, x="date", y="risk_score", markers=True)
             fig_risk.update_traces(line_color="#ff8a00")
 
             fig_risk.update_layout(
@@ -2513,9 +2299,7 @@ with chart2:
             st.info("No data available.")
 
 
-# ============================================================
 # SOURCE DISTRIBUTION
-# ============================================================
 
 with chart3:
 
@@ -2529,17 +2313,12 @@ with chart3:
         if not filtered.empty:
 
             distribution = (
-                filtered[
-                    "classification_label"
-                ]
+                filtered["classification_label"]
                 .value_counts()
                 .reset_index()
             )
 
-            distribution.columns = [
-                "Type",
-                "Count"
-            ]
+            distribution.columns = ["Type", "Count"]
 
             fig_source = px.pie(
                 distribution,
@@ -2586,43 +2365,24 @@ if not filtered.empty:
 
     feed = (
         filtered
-        .sort_values(
-            "risk_score",
-            ascending=False
-        )
+        .sort_values("risk_score", ascending=False)
         .head(4)
     )
 
     feed_columns = st.columns(4)
 
+    for feed_column, (_, event) in zip(feed_columns, feed.iterrows()):
 
-    for feed_column, (_, event) in zip(
-        feed_columns,
-        feed.iterrows()
-    ):
-
-        score = int(
-            event["risk_score"]
-        )
-
-        risk = risk_name(score)
+        score = int(event["risk_score"])
+        risk = event["risk_level"]  # FIX: read from backend, not recomputed
 
         classification = CLASS_NAMES.get(
-            event.get(
-                "classification",
-                "UNKNOWN"
-            ),
+            event.get("classification", "UNKNOWN"),
             "Unknown"
         )
 
         risk_hex = risk_color(risk)
-
-        risk_icon = {
-            "CRITICAL": "🔴",
-            "HIGH": "🟠",
-            "MEDIUM": "🟡",
-            "LOW": "🟢",
-        }.get(risk, "⚪")
+        risk_icon = RISK_ICONS.get(risk, "⚪")
 
         event_time = (
             event["acquisition_date"].strftime("%H:%M")
@@ -2630,36 +2390,16 @@ if not filtered.empty:
             else "N/A"
         )
 
-        confidence = event.get(
-            "confidence",
-            "N/A"
-        )
-
-        distance = event.get(
-            "distance_to_industry",
-            "N/A"
-        )
-
+        confidence = event.get("confidence", "N/A")
+        distance = event.get("distance_to_industry", "N/A")
 
         with feed_column:
 
             st.markdown(
-                f'<div class="feed-card" '
-                f'style="border-left:3px solid '
-                f'{risk_hex};">'
-                f'<div class="feed-time">'
-                f'{event_time}'
-                f'</div>'
-
-                f'<div class="feed-risk" '
-                f'style="color:{risk_hex};">'
-                f'{risk_icon} {risk}'
-                f'</div>'
-
-                f'<div class="feed-title">'
-                f'{classification} detected'
-                f'</div>'
-
+                f'<div class="feed-card" style="border-left:3px solid {risk_hex};">'
+                f'<div class="feed-time">{event_time}</div>'
+                f'<div class="feed-risk" style="color:{risk_hex};">{risk_icon} {risk}</div>'
+                f'<div class="feed-title">{classification} detected</div>'
                 f'<div class="feed-meta">'
                 f'Confidence: {confidence}%'
                 f'<br>'
@@ -2667,17 +2407,13 @@ if not filtered.empty:
                 f'<br>'
                 f'Risk Score: {score}/100'
                 f'</div>'
-
                 f'</div>',
                 unsafe_allow_html=True
             )
 
-
 else:
 
-    st.info(
-        "No intelligence events available."
-    )
+    st.info("No intelligence events available.")
 
 
 # ============================================================
@@ -2689,15 +2425,11 @@ st.markdown('<div class="section-title">REPORTS</div>', unsafe_allow_html=True)
 export1, export2 = st.columns(2)
 
 
-# ============================================================
 # CSV EXPORT
-# ============================================================
 
 with export1:
 
-    csv_data = filtered.to_csv(
-        index=False
-    )
+    csv_data = filtered.to_csv(index=False)
 
     st.download_button(
         "⬇ EXPORT CSV",
@@ -2708,9 +2440,7 @@ with export1:
     )
 
 
-# ============================================================
 # GEOJSON EXPORT
-# ============================================================
 
 with export2:
 
@@ -2725,74 +2455,40 @@ with export2:
             value = row[column]
 
             if pd.isna(value):
-
                 value = None
-
-            elif isinstance(
-                value,
-                pd.Timestamp
-            ):
-
+            elif isinstance(value, pd.Timestamp):
                 value = value.isoformat()
-
-            elif hasattr(
-                value,
-                "item"
-            ):
-
+            elif hasattr(value, "item"):
                 try:
-
                     value = value.item()
-
                 except Exception:
-
                     pass
 
             properties[column] = value
 
-
         try:
-
-            latitude = float(
-                row["latitude"]
-            )
-
-            longitude = float(
-                row["longitude"]
-            )
-
+            latitude = float(row["latitude"])
+            longitude = float(row["longitude"])
         except Exception:
-
             continue
 
-
-        features.append(
-            {
-                "type": "Feature",
-                "properties": properties,
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [
-                        longitude,
-                        latitude
-                    ]
-                }
+        features.append({
+            "type": "Feature",
+            "properties": properties,
+            "geometry": {
+                "type": "Point",
+                "coordinates": [longitude, latitude]
             }
-        )
-
+        })
 
     geojson_data = {
         "type": "FeatureCollection",
         "features": features
     }
 
-
     st.download_button(
         "⬇ EXPORT GEOJSON",
-        data=json.dumps(
-            geojson_data,
-            indent=2
-        ),
+        data=json.dumps(geojson_data, indent=2),
         file_name="thermoscope_report.geojson",
         mime="application/geo+json",
         use_container_width=True
