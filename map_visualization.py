@@ -20,6 +20,27 @@ import folium
 from folium import plugins
 from branca.element import Element
 
+# FIX: map_visualization.py used to recompute its own risk score/level
+# with a formula that had drifted from the backend (industrial bonus
+# +5 instead of +30, thresholds CRITICAL>=80/MEDIUM>=40 instead of the
+# backend's CRITICAL>=65/HIGH>=50/MODERATE>=35/LOW). That's why the map
+# popup could show "MEDIUM" for a fire the sidebar filter, KPI cards,
+# and event panel all correctly showed as CRITICAL — two disconnected
+# risk engines answering differently for the same row. Now the popup
+# uses risk_score/risk_level straight from the row (same values
+# already fetched from the backend via /api/v1/fires), and only calls
+# risk_engine.calculate_risk() to regenerate the point breakdown for
+# display — same inputs, same deterministic formula that produced
+# row["risk_score"], so it can't disagree with it.
+from risk_engine import calculate_risk, get_recommendation
+
+RISK_LEVEL_COLORS = {
+    "CRITICAL": "#ef4444",
+    "HIGH": "#ff8a00",
+    "MODERATE": "#f5bd24",
+    "LOW": "#35cf66",
+}
+
 
 # =========================================================
 # CONTRACT COLORS
@@ -248,9 +269,23 @@ def create_fire_map(
 
 
             # -------------------------------------------------
-            # Risk score + contribution breakdown
-            # (same formula as calculate_risk() in app.py, so
-            # this always agrees with the Event Intelligence panel)
+            # Risk score + level: read directly from the row,
+            # i.e. from the backend (risk_engine.py) response —
+            # never recomputed with a local formula.
+            # -------------------------------------------------
+
+            risk_score = int(row.get("risk_score", 0))
+            risk_level = str(row.get("risk_level", "LOW")).upper()
+            risk_level_color = RISK_LEVEL_COLORS.get(risk_level, "#64748b")
+            recommendation = get_recommendation(risk_level)
+
+            # -------------------------------------------------
+            # Point breakdown for the popup — regenerated from
+            # risk_engine.calculate_risk() using the SAME inputs
+            # that produced row["risk_score"] on the backend, so
+            # it is guaranteed to sum to the same total. Purely
+            # for the "+N" display rows below; not used for the
+            # headline score/level above.
             # -------------------------------------------------
 
             try:
@@ -266,68 +301,19 @@ def create_fire_map(
             try:
                 _distance_val = float(distance)
             except Exception:
-                _distance_val = 999
+                _distance_val = None
 
-            brightness_pts = max(
-                0,
-                min(
-                    40,
-                    ((_brightness_val - 280) / 100) * 40
-                )
+            _, breakdown = calculate_risk(
+                brightness=_brightness_val,
+                confidence=_confidence_val,
+                distance_km=_distance_val,
+                classification=str(classification),
             )
 
-            confidence_pts = (
-                _confidence_val / 100
-            ) * 30
-
-            if _distance_val <= 2:
-                proximity_pts = 30
-            elif _distance_val <= 5:
-                proximity_pts = 22
-            elif _distance_val <= 8:
-                proximity_pts = 14
-            elif _distance_val <= 15:
-                proximity_pts = 7
-            else:
-                proximity_pts = 2
-
-            industrial_pts = (
-                5 if classification == "INDUSTRIAL_FIRE" else 0
-            )
-
-            risk_score = max(
-                0,
-                min(
-                    100,
-                    int(round(
-                        brightness_pts
-                        + confidence_pts
-                        + proximity_pts
-                        + industrial_pts
-                    ))
-                )
-            )
-
-            if risk_score >= 80:
-                risk_level = "CRITICAL"
-                risk_level_color = "#ef4444"
-                recommendation = "Immediate emergency response required"
-            elif risk_score >= 60:
-                risk_level = "HIGH"
-                risk_level_color = "#ff8a00"
-                recommendation = "Immediate verification recommended"
-            elif risk_score >= 40:
-                risk_level = "MEDIUM"
-                risk_level_color = "#f5bd24"
-                recommendation = "Schedule inspection and monitor closely"
-            else:
-                risk_level = "LOW"
-                risk_level_color = "#35cf66"
-                recommendation = "Routine monitoring sufficient"
-
-            brightness_pts_display = int(round(brightness_pts))
-            confidence_pts_display = int(round(confidence_pts))
-            proximity_pts_display = int(round(proximity_pts))
+            brightness_pts_display = int(round(breakdown["brightness_score"]))
+            confidence_pts_display = int(round(breakdown["confidence_score"]))
+            proximity_pts_display = int(round(breakdown["proximity_score"]))
+            industrial_pts = int(round(breakdown["classification_bonus"]))
 
 
             # -------------------------------------------------
