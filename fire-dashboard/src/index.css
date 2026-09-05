@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background-color: #05080f;
+}
+
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+  color: #e8edf5;
+  background: radial-gradient(circle at 15% 0%, #0a0f18 0%, #05080f 55%) fixed;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #05080f; }
+::-webkit-scrollbar-thumb { background: #1b2635; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #283446; }
+
+/* ---- Leaflet dark-theme overrides ---- */
+.leaflet-container {
+  background: #05080f !important;
+  border-radius: 10px;
+  font-family: -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+}
+
+.leaflet-control-layers,
+.leaflet-control-zoom a,
+.leaflet-control-fullscreen a {
+  background: #0d141f !important;
+  color: #dce4ee !important;
+  border: 1px solid #283446 !important;
+}
+
+.leaflet-control-layers-toggle {
+  filter: invert(1) brightness(1.6);
+}
+
+.leaflet-popup-content-wrapper {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 14px !important;
+}
+
+.leaflet-popup-content { margin: 0 !important; width: auto !important; }
+
+.leaflet-popup-tip {
+  background: rgba(8, 13, 24, 0.97) !important;
+  box-shadow: none !important;
+}
+
+.leaflet-popup-close-button {
+  color: #ffffff !important;
+  background: rgba(10, 15, 27, 0.92) !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  border-radius: 50% !important;
+  width: 22px !important;
+  height: 22px !important;
+  line-height: 20px !important;
+  top: 8px !important;
+  right: 8px !important;
+}
+
+/* ---- Pulsing thermal marker ---- */
+.thermal-marker {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+}
+
+.thermal-core {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 10px; height: 10px;
+  transform: translate(-50%, -50%);
+  background: var(--marker-color);
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--marker-color), 0 0 16px var(--marker-color);
+  z-index: 3;
+}
+
+.thermal-pulse {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 10px; height: 10px;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--marker-color);
+  border-radius: 50%;
+  animation: thermalPulse 1.8s infinite;
+  opacity: 0.9;
+}
+
+@keyframes thermalPulse {
+  0%   { width: 10px; height: 10px; opacity: 0.9; }
+  70%  { width: 30px; height: 30px; opacity: 0.15; }
+  100% { width: 34px; height: 34px; opacity: 0; }
+}
+
+/* ---- Range sliders ---- */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  background: #1b2635;
+  border-radius: 3px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: #24aef5;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(36,174,245,0.7);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: #24aef5;
+  border: none;
+  cursor: pointer;
+}
