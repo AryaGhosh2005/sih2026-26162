@@ -159,9 +159,17 @@ async def get_industries():
     Returns a list of industrial sites with names, coordinates, and types.
     """
     df = load_industries_data()
-    
+
     result = df.to_dict(orient="records")
-    
+
+    # Clean NaN and infinite values for JSON serialization
+    for record in result:
+        for key, value in record.items():
+            if pd.isna(value):
+                record[key] = None
+            elif isinstance(value, float) and not __import__("math").isfinite(value):
+                record[key] = None
+
     return {"industries": result}
 
 # --- Optional: Filtered endpoint for query parameters ---
