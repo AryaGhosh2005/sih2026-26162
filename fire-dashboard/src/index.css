@@ -126,3 +126,37 @@ input[type="range"]::-moz-range-thumb {
   border: none;
   cursor: pointer;
 }
+/* =========================================================
+   FIRE EVENT POPUP
+   ========================================================= */
+
+.fire-event-popup .leaflet-popup-content-wrapper {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 16px !important;
+}
+
+.fire-event-popup .leaflet-popup-content {
+  margin: 0 !important;
+  width: 300px !important;
+}
+
+.fire-event-popup .leaflet-popup-tip {
+  background: #07101b !important;
+  box-shadow: none !important;
+}
+
+.fire-event-popup .leaflet-popup-close-button {
+  color: #8fa0b4 !important;
+  font-size: 18px !important;
+  font-weight: 300 !important;
+  top: 8px !important;
+  right: 9px !important;
+  z-index: 20 !important;
+}
+
+.fire-event-popup .leaflet-popup-close-button:hover {
+  color: #22d3ee !important;
+}

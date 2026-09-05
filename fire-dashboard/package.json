@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.102.8",
+    "framer-motion": "^13.2.0",
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",
     "lucide-react": "^0.383.0",
