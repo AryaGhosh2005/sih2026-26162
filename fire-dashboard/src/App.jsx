@@ -1,9 +1,17 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
+import {
+  ChevronRight,
+  ChevronLeft,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
+
 import Sidebar from "./components/Sidebar";
 import KpiCards from "./components/KpiCards";
 import FireMap from "./components/FireMap";
 import EventIntelligence from "./components/EventIntelligence";
 import AnalyticsCharts from "./components/AnalyticsCharts";
+
 import { loadData } from "./api";
 import { applyFilters, toDateOnly } from "./utils";
 import { RISK_OPTIONS, SOURCE_TYPES } from "./constants";
@@ -55,6 +63,14 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  /* =========================================================
+     COLLAPSIBLE PANEL STATES
+     ========================================================= */
+
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [bottomCollapsed, setBottomCollapsed] = useState(false);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -104,6 +120,7 @@ export default function App() {
   /* =========================================================
      LOADING STATE
      ========================================================= */
+
   if (loading && !filters) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#02060b] text-[#8490a2] text-sm">
@@ -115,6 +132,7 @@ export default function App() {
   /* =========================================================
      ERROR STATE
      ========================================================= */
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#02060b] p-6">
@@ -128,13 +146,14 @@ export default function App() {
   /* =========================================================
      MAIN COMMAND CENTER
      ========================================================= */
+
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#02060b] text-white">
 
       {/* =========================================================
           FULLSCREEN MAP CANVAS
-          FireMap itself is NOT being modified.
          ========================================================= */}
+
       <div className="absolute inset-0 z-0">
         <FireMap
           fires={filtered}
@@ -147,12 +166,14 @@ export default function App() {
       {/* =========================================================
           FLOATING COMMAND CENTER UI
          ========================================================= */}
+
       <div className="pointer-events-none absolute inset-0 z-10">
 
 
         {/* =======================================================
             BRAND PANEL
            ======================================================= */}
+
         <div className="pointer-events-auto absolute left-4 top-4 z-30">
 
           <div className="rounded-2xl border border-cyan-400/25 bg-[#07101b]/80 px-5 py-3 backdrop-blur-2xl shadow-[0_0_30px_rgba(0,180,255,0.10)]">
@@ -189,6 +210,7 @@ export default function App() {
         {/* =======================================================
             KPI CARDS
            ======================================================= */}
+
         <div className="pointer-events-auto absolute left-1/2 top-4 z-30 w-[min(850px,55vw)] -translate-x-1/2">
 
           <KpiCards
@@ -199,59 +221,42 @@ export default function App() {
         </div>
 
 
-       {/* =======================================================
-    SYSTEM STATUS + CLOCK
-    Positioned away from Leaflet map controls
-   ======================================================= */}
-<div className="pointer-events-auto absolute right-[175px] top-4 z-30 flex items-center gap-2">
-
-  {/* SYSTEM STATUS */}
-  <div className="rounded-xl border border-cyan-400/20 bg-[#07101b]/85 px-5 py-3 text-center backdrop-blur-2xl shadow-[0_0_25px_rgba(0,180,255,0.08)]">
-
-    <div className="text-[8px] uppercase tracking-widest text-slate-500">
-      System Status
-    </div>
-
-    <div className="mt-1 flex items-center justify-center gap-2 text-[11px] font-bold text-emerald-400">
-
-      <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
-
-      MONITORING ACTIVE
-
-    </div>
-
-  </div>
-
-
-  {/* CLOCK */}
-  <div className="rounded-xl border border-cyan-400/20 bg-[#07101b]/85 px-5 py-3 text-center backdrop-blur-2xl shadow-[0_0_25px_rgba(0,180,255,0.08)]">
-
-    <div className="text-sm font-bold text-white whitespace-nowrap">
-      {new Date().toLocaleTimeString()}
-    </div>
-
-    <div className="text-[8px] text-slate-500 whitespace-nowrap">
-      {new Date().toLocaleDateString()}
-    </div>
-
-  </div>
-
-</div>
-
         {/* =======================================================
-            FLOATING CONTROL PANEL
+            SYSTEM STATUS + CLOCK
            ======================================================= */}
-        <div className="pointer-events-auto absolute bottom-24 left-4 top-28 z-30 w-[220px]">
 
-          <div className="h-full overflow-hidden rounded-2xl border border-cyan-400/20 bg-[#050b13]/75 backdrop-blur-2xl shadow-[0_0_35px_rgba(0,200,255,0.08)]">
+        <div className="pointer-events-auto absolute right-[175px] top-4 z-30 flex items-center gap-2">
 
-            <Sidebar
-              filters={filters}
-              setFilters={setFilters}
-              dataStatus={{ total: fires.length }}
-              onRefresh={() => setRefreshKey((k) => k + 1)}
-              satellites={satellites}
-            />
+          {/* SYSTEM STATUS */}
+
+          <div className="rounded-xl border border-cyan-400/20 bg-[#07101b]/85 px-5 py-3 text-center backdrop-blur-2xl shadow-[0_0_25px_rgba(0,180,255,0.08)]">
+
+            <div className="text-[8px] uppercase tracking-widest text-slate-500">
+              System Status
+            </div>
+
+            <div className="mt-1 flex items-center justify-center gap-2 text-[11px] font-bold text-emerald-400">
+
+              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
+
+              MONITORING ACTIVE
+
+            </div>
+
+          </div>
+
+
+          {/* CLOCK */}
+
+          <div className="rounded-xl border border-cyan-400/20 bg-[#07101b]/85 px-5 py-3 text-center backdrop-blur-2xl shadow-[0_0_25px_rgba(0,180,255,0.08)]">
+
+            <div className="text-sm font-bold text-white whitespace-nowrap">
+              {new Date().toLocaleTimeString()}
+            </div>
+
+            <div className="text-[8px] text-slate-500 whitespace-nowrap">
+              {new Date().toLocaleDateString()}
+            </div>
 
           </div>
 
@@ -259,35 +264,264 @@ export default function App() {
 
 
         {/* =======================================================
-            EVENT INTELLIGENCE
+            LEFT CONTROL PANEL
+            COLLAPSIBLE
            ======================================================= */}
-        <div className="pointer-events-auto absolute right-4 top-28 z-30 w-[360px]">
 
-          <div className="rounded-2xl border border-cyan-400/25 bg-[#06101a]/80 p-2 backdrop-blur-2xl shadow-[0_0_35px_rgba(0,180,255,0.12)]">
+        {!leftCollapsed ? (
 
-            <EventIntelligence
-              event={selectedEvent}
-            />
+          <div className="pointer-events-auto absolute bottom-24 left-4 top-28 z-30 w-[220px]">
+
+            <div className="relative h-full overflow-hidden rounded-2xl border border-cyan-400/20 bg-[#050b13]/75 backdrop-blur-2xl shadow-[0_0_35px_rgba(0,200,255,0.08)]">
+
+              <Sidebar
+                filters={filters}
+                setFilters={setFilters}
+                dataStatus={{ total: fires.length }}
+                onRefresh={() => setRefreshKey((k) => k + 1)}
+                satellites={satellites}
+              />
+
+              {/* COLLAPSE BUTTON */}
+
+              <button
+                onClick={() => setLeftCollapsed(true)}
+                className="
+                  absolute
+                  right-0
+                  top-1/2
+                  -translate-y-1/2
+                  translate-x-1/2
+                  z-50
+                  flex
+                  h-9
+                  w-6
+                  items-center
+                  justify-center
+                  rounded-r-lg
+                  rounded-l-sm
+                  border
+                  border-cyan-400/30
+                  bg-[#06131d]/95
+                  text-cyan-300
+                  shadow-[0_0_15px_rgba(0,200,255,0.18)]
+                  transition-all
+                  hover:bg-cyan-400/10
+                  hover:text-cyan-200
+                "
+                title="Collapse control panel"
+              >
+                <ChevronLeft size={14} />
+              </button>
+
+            </div>
 
           </div>
 
-        </div>
+        ) : (
+
+          /* COLLAPSED LEFT TAB */
+
+          <button
+            onClick={() => setLeftCollapsed(false)}
+            className="
+              pointer-events-auto
+              absolute
+              left-0
+              top-1/2
+              -translate-y-1/2
+              z-40
+              flex
+              h-12
+              w-7
+              items-center
+              justify-center
+              rounded-r-lg
+              border
+              border-cyan-400/30
+              bg-[#06131d]/95
+              text-cyan-300
+              shadow-[0_0_20px_rgba(0,200,255,0.20)]
+              transition-all
+              hover:bg-cyan-400/10
+            "
+            title="Open control panel"
+          >
+            <ChevronRight size={16} />
+          </button>
+
+        )}
 
 
         {/* =======================================================
-            ANALYTICS DOCK
+            RIGHT EVENT INTELLIGENCE
+            COLLAPSIBLE
            ======================================================= */}
-        <div className="pointer-events-auto absolute bottom-4 left-1/2 z-30 w-[min(1100px,72vw)] -translate-x-1/2">
 
-          <div className="rounded-2xl border border-cyan-400/20 bg-[#06101a]/75 p-2 backdrop-blur-2xl shadow-[0_0_35px_rgba(0,180,255,0.10)]">
+        {!rightCollapsed ? (
 
-            <AnalyticsCharts
-              filtered={filtered}
-            />
+          <div className="pointer-events-auto absolute right-4 top-28 z-30 w-[360px]">
+
+            <div className="relative rounded-2xl border border-cyan-400/25 bg-[#06101a]/80 p-2 backdrop-blur-2xl shadow-[0_0_35px_rgba(0,180,255,0.12)]">
+
+              <EventIntelligence
+                event={selectedEvent}
+              />
+
+              {/* COLLAPSE BUTTON */}
+
+              <button
+                onClick={() => setRightCollapsed(true)}
+                className="
+                  absolute
+                  left-0
+                  top-1/2
+                  -translate-x-1/2
+                  -translate-y-1/2
+                  z-50
+                  flex
+                  h-9
+                  w-6
+                  items-center
+                  justify-center
+                  rounded-l-lg
+                  rounded-r-sm
+                  border
+                  border-cyan-400/30
+                  bg-[#06131d]/95
+                  text-cyan-300
+                  shadow-[0_0_15px_rgba(0,200,255,0.18)]
+                  transition-all
+                  hover:bg-cyan-400/10
+                  hover:text-cyan-200
+                "
+                title="Collapse event intelligence"
+              >
+                <ChevronRight size={14} />
+              </button>
+
+            </div>
 
           </div>
 
-        </div>
+        ) : (
+
+          /* COLLAPSED RIGHT TAB */
+
+          <button
+            onClick={() => setRightCollapsed(false)}
+            className="
+              pointer-events-auto
+              absolute
+              right-0
+              top-1/2
+              -translate-y-1/2
+              z-40
+              flex
+              h-12
+              w-7
+              items-center
+              justify-center
+              rounded-l-lg
+              border
+              border-cyan-400/30
+              bg-[#06131d]/95
+              text-cyan-300
+              shadow-[0_0_20px_rgba(0,200,255,0.20)]
+              transition-all
+              hover:bg-cyan-400/10
+            "
+            title="Open event intelligence"
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+        )}
+
+
+        {/* =======================================================
+            BOTTOM ANALYTICS DOCK
+            COLLAPSIBLE
+           ======================================================= */}
+
+        {!bottomCollapsed ? (
+
+          <div className="pointer-events-auto absolute bottom-4 left-1/2 z-30 w-[min(1100px,72vw)] -translate-x-1/2">
+
+            <div className="relative rounded-2xl border border-cyan-400/20 bg-[#06101a]/75 p-2 backdrop-blur-2xl shadow-[0_0_35px_rgba(0,180,255,0.10)]">
+
+              <AnalyticsCharts
+                filtered={filtered}
+              />
+
+              {/* COLLAPSE BUTTON */}
+
+              <button
+                onClick={() => setBottomCollapsed(true)}
+                className="
+                  absolute
+                  left-1/2
+                  top-0
+                  -translate-x-1/2
+                  -translate-y-1/2
+                  z-50
+                  flex
+                  h-6
+                  w-12
+                  items-center
+                  justify-center
+                  rounded-t-lg
+                  border
+                  border-cyan-400/30
+                  bg-[#06131d]/95
+                  text-cyan-300
+                  shadow-[0_0_15px_rgba(0,200,255,0.18)]
+                  transition-all
+                  hover:bg-cyan-400/10
+                  hover:text-cyan-200
+                "
+                title="Collapse analytics"
+              >
+                <ChevronDown size={15} />
+              </button>
+
+            </div>
+
+          </div>
+
+        ) : (
+
+          /* COLLAPSED BOTTOM TAB */
+
+          <button
+            onClick={() => setBottomCollapsed(false)}
+            className="
+              pointer-events-auto
+              absolute
+              bottom-0
+              left-1/2
+              -translate-x-1/2
+              z-40
+              flex
+              h-7
+              w-14
+              items-center
+              justify-center
+              rounded-t-lg
+              border
+              border-cyan-400/30
+              bg-[#06131d]/95
+              text-cyan-300
+              shadow-[0_0_20px_rgba(0,200,255,0.20)]
+              transition-all
+              hover:bg-cyan-400/10
+            "
+            title="Open analytics"
+          >
+            <ChevronUp size={16} />
+          </button>
+
+        )}
 
       </div>
 
