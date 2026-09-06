@@ -20,6 +20,27 @@ import folium
 from folium import plugins
 from branca.element import Element
 
+# FIX: map_visualization.py used to recompute its own risk score/level
+# with a formula that had drifted from the backend (industrial bonus
+# +5 instead of +30, thresholds CRITICAL>=80/MEDIUM>=40 instead of the
+# backend's CRITICAL>=65/HIGH>=50/MODERATE>=35/LOW). That's why the map
+# popup could show "MEDIUM" for a fire the sidebar filter, KPI cards,
+# and event panel all correctly showed as CRITICAL — two disconnected
+# risk engines answering differently for the same row. Now the popup
+# uses risk_score/risk_level straight from the row (same values
+# already fetched from the backend via /api/v1/fires), and only calls
+# risk_engine.calculate_risk() to regenerate the point breakdown for
+# display — same inputs, same deterministic formula that produced
+# row["risk_score"], so it can't disagree with it.
+from risk_engine import calculate_risk, get_recommendation
+
+RISK_LEVEL_COLORS = {
+    "CRITICAL": "#ef4444",
+    "HIGH": "#ff8a00",
+    "MODERATE": "#f5bd24",
+    "LOW": "#35cf66",
+}
+
 
 # =========================================================
 # CONTRACT COLORS
@@ -248,68 +269,51 @@ def create_fire_map(
 
 
             # -------------------------------------------------
-            # Risk score + contribution breakdown
-            # (read directly from backend-generated DataFrame)
+            # Risk score + level: read directly from the row,
+            # i.e. from the backend (risk_engine.py) response —
+            # never recomputed with a local formula.
             # -------------------------------------------------
 
-            brightness_pts = row.get(
-                "brightness_score",
-                0
-            )
-
-            confidence_pts = row.get(
-                "confidence_score",
-                0
-            )
-
-            proximity_pts = row.get(
-                "proximity_score",
-                0
-            )
-
-            industrial_pts = row.get(
-                "classification_bonus",
-                0
-            )
-
-            risk_score = row.get(
-                "risk_score",
-                0
-            )
-
-            risk_level = row.get(
-                "risk_level",
-                "LOW"
-            )
-
-            if risk_level == "CRITICAL":
-                risk_level_color = "#ef4444"
-
-            elif risk_level == "HIGH":
-                risk_level_color = "#ff8a00"
-
-            elif risk_level == "MODERATE":
-                risk_level_color = "#f5bd24"
-
-            else:
-                risk_level_color = "#35cf66"
-
+            risk_score = int(row.get("risk_score", 0))
+            risk_level = str(row.get("risk_level", "LOW")).upper()
+            risk_level_color = RISK_LEVEL_COLORS.get(risk_level, "#64748b")
+            recommendation = get_recommendation(risk_level)
 
             # -------------------------------------------------
-            # Display helpers for popup
+            # Point breakdown for the popup — regenerated from
+            # risk_engine.calculate_risk() using the SAME inputs
+            # that produced row["risk_score"] on the backend, so
+            # it is guaranteed to sum to the same total. Purely
+            # for the "+N" display rows below; not used for the
+            # headline score/level above.
             # -------------------------------------------------
 
-            brightness_pts_display = int(brightness_pts)
-            confidence_pts_display = int(confidence_pts)
-            proximity_pts_display = int(proximity_pts)
+            try:
+                _brightness_val = float(brightness)
+            except Exception:
+                _brightness_val = 0
 
-            _recommendations = {
-                "CRITICAL": "Immediate emergency response required. Evacuate personnel and alert fire services.",
-                "HIGH": "Urgent inspection needed. Notify facility management and local authorities.",
-                "MODERATE": "Schedule on-site inspection within 24 hours. Increase monitoring frequency.",
-                "LOW": "Continue routine monitoring. Log for periodic review."
-            }
-            recommendation = _recommendations.get(risk_level, "Continue routine monitoring.")
+            try:
+                _confidence_val = float(confidence)
+            except Exception:
+                _confidence_val = 0
+
+            try:
+                _distance_val = float(distance)
+            except Exception:
+                _distance_val = None
+
+            _, breakdown = calculate_risk(
+                brightness=_brightness_val,
+                confidence=_confidence_val,
+                distance_km=_distance_val,
+                classification=str(classification),
+            )
+
+            brightness_pts_display = int(round(breakdown["brightness_score"]))
+            confidence_pts_display = int(round(breakdown["confidence_score"]))
+            proximity_pts_display = int(round(breakdown["proximity_score"]))
+            industrial_pts = int(round(breakdown["classification_bonus"]))
 
 
             # -------------------------------------------------
