@@ -25,8 +25,6 @@ CLASSIFICATION_LABELS = {
     "UNKNOWN": "Unknown",
 }
 
-_con = duckdb.connect(database=":memory:")
-
 
 def load_fires() -> pd.DataFrame:
     """Loads and sanitizes classified fire detections with vectorized threat scores."""
@@ -35,18 +33,20 @@ def load_fires() -> pd.DataFrame:
         raise FileNotFoundError(f"Thermal detections not found at: {FIRES_FILE}")
 
     csv_path = str(FIRES_FILE).replace("\\", "/")
-    df = _con.execute(
-    f"SELECT * FROM read_csv_auto('{csv_path}')"
-).fetch_df()
+
+    with duckdb.connect(database=":memory:") as con:
+        df = con.execute(
+            f"SELECT * FROM read_csv_auto('{csv_path}')"
+        ).fetch_df()
 
     if df is None or len(df) == 0:
         return pd.DataFrame(
             columns=[
-            "id",
-            "name",
-            "latitude",
-            "longitude",
-            "type",
+                "id",
+                "name",
+                "latitude",
+                "longitude",
+                "type",
             ]
         )
 
@@ -169,9 +169,10 @@ def load_industries() -> pd.DataFrame:
 
     csv_path = str(INDUSTRIES_FILE).replace("\\", "/")
 
-    df = _con.execute(
-        f"SELECT * FROM read_csv_auto('{csv_path}')"
-    ).fetch_df()
+    with duckdb.connect(database=":memory:") as con:
+        df = con.execute(
+            f"SELECT * FROM read_csv_auto('{csv_path}')"
+        ).fetch_df()
 
     df["latitude"] = (
         pd.to_numeric(
