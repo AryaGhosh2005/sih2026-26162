@@ -11,8 +11,11 @@ export const INDUSTRIES_ENDPOINT = `${API_BASE}/api/v1/industries`;
 async function fetchJson(url, label) {
   let res;
   try {
-    res = await fetch(url, { signal: AbortSignal.timeout(60000) });
+    res = await fetch(url);
   } catch (err) {
+    if (err?.name === "AbortError") {
+      throw new Error(`Request to ${label} endpoint (${url}) timed out or was canceled.`);
+    }
     throw new Error(`Could not reach ${label} endpoint (${url}): ${err.message}`);
   }
   if (!res.ok) {
