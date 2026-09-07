@@ -3,9 +3,9 @@ import { CLASS_NAMES } from "./constants";
 // Ported from app.py's API_BASE / FIRES_ENDPOINT / INDUSTRIES_ENDPOINT.
 // Override via a .env file (see .env.example) — Vite exposes it as
 // import.meta.env.VITE_FIRE_API_BASE.
-const API_BASE = import.meta.env.VITE_FIRE_API_BASE || "http://localhost:8000";
-export const FIRES_ENDPOINT = `${API_BASE}/api/fires`;
-export const INDUSTRIES_ENDPOINT = `${API_BASE}/api/industries`;
+const API_BASE = import.meta.env.VITE_FIRE_API_BASE || "http://127.0.0.1:8000";
+export const FIRES_ENDPOINT = `${API_BASE}/api/v1/fires`;
+export const INDUSTRIES_ENDPOINT = `${API_BASE}/api/v1/industries`;
 
 async function fetchJson(url, label) {
   let res;
